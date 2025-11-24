@@ -51,6 +51,7 @@ credentials/
 token.json
 *.json
 !package.json
+!locales/*.json
 
 # Logs
 *.log

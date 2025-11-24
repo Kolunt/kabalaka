@@ -1,0 +1,74 @@
+{
+  "welcome": "Hello, {name}! 👋\n\nI'll help you receive notifications about events from your calendars.\n\nChoose an action:",
+  "main_menu": "Main menu. Choose an action:",
+  "menu_calendars": "📅 My calendars",
+  "menu_settings": "⚙️ Settings",
+  "menu_help": "ℹ️ Help",
+  "menu_language": "🌐 Language",
+  "back_main": "🔙 Main menu",
+  "back": "🔙 Back",
+  
+  "calendars_title": "📅 Your calendars:\n\n",
+  "calendars_empty": "📅 You don't have any connected calendars yet.\n\nChoose a calendar to connect:",
+  "connect_google": "➕ Connect Google Calendar",
+  "connect_yandex": "➕ Connect Yandex Calendar",
+  "disconnect_google": "❌ Disconnect Google",
+  "disconnect_yandex": "❌ Disconnect Yandex",
+  "google_connected": "✅ Google: {name}",
+  "yandex_connected": "✅ Yandex: {name}",
+  "connected": "Connected",
+  "unknown": "Unknown",
+  
+  "google_already_connected": "Google Calendar is already connected!",
+  "yandex_already_connected": "Yandex Calendar is already connected!",
+  "google_disconnected": "✅ Google Calendar disconnected",
+  "yandex_disconnected": "✅ Yandex Calendar disconnected",
+  "google_disconnected_alert": "Google Calendar disconnected!",
+  "yandex_disconnected_alert": "Yandex Calendar disconnected!",
+  
+  "connect_google_title": "🔗 Connecting Google Calendar\n\n1. Click the 'Authorize' button\n2. Allow access to calendar\n3. Copy the authorization code\n4. Send it to me in the next message",
+  "connect_yandex_title": "🔗 Connecting Yandex Calendar\n\n1. Click the 'Authorize' button\n2. Allow access to calendar\n3. Copy the authorization code\n4. Send it to me in the next message",
+  "authorize": "🔗 Authorize",
+  
+  "google_success": "✅ Google Calendar successfully connected!\nCalendar: {name}",
+  "yandex_success": "✅ Yandex Calendar successfully connected!\nCalendar: {name}",
+  "error_connection": "❌ Connection error. Check the code and try again.\nUse the menu to try again.",
+  "error_token": "❌ Error getting token. Check the code and try again.",
+  
+  "calendar_info_google": "📅 Google Calendar\n\nName: {name}\nConnected: {date}",
+  "calendar_info_yandex": "📅 Yandex Calendar\n\nName: {name}\nConnected: {date}",
+  
+  "settings_title": "⚙️ Notification settings\n\nNotification time: {minutes} minutes before event\nStatus: {status}\n\nChoose a parameter to change:",
+  "settings_time": "⏰ Notification time: {minutes} min",
+  "settings_enabled": "✅ Enabled",
+  "settings_disabled": "❌ Disabled",
+  "settings_time_menu": "⏰ Choose notification time before event:",
+  "time_set": "✅ Notification time set: {minutes} minutes",
+  "time_set_alert": "Notification time set: {minutes} minutes",
+  "notifications_toggled": "Notifications {status}!",
+  "notifications_enabled": "enabled",
+  "notifications_disabled": "disabled",
+  
+  "time_5": "5 minutes",
+  "time_10": "10 minutes",
+  "time_15": "15 minutes",
+  "time_30": "30 minutes",
+  "time_60": "60 minutes",
+  "time_120": "120 minutes",
+  
+  "help_text": "📚 Help\n\n🔗 Connecting calendars:\n• Select 'My calendars'\n• Click 'Connect' for the desired calendar\n• Authorize and send the code\n\n⚙️ Settings:\n• Choose notification time (5-120 minutes)\n• Enable/disable notifications\n\nThe bot automatically checks events and sends notifications at the specified time before the event.",
+  
+  "use_buttons": "Use buttons to control the bot:",
+  
+  "language_title": "🌐 Language settings\n\nCurrent language: {current}\n\nChoose your language:",
+  "language_changed": "✅ Language changed to {language}",
+  "language_english": "🇬🇧 English",
+  "language_russian": "🇷🇺 Russian",
+  "language_spanish": "🇪🇸 Spanish",
+  
+  "event_notification": "📅 Event reminder\n\n{title}\n\n⏰ Starts: {start_time}\n📍 Location: {location}\n\n{description}",
+  
+  "minutes": "minutes",
+  "starts_in": "Starts in {minutes} minutes"
+}
+

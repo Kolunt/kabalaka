@@ -1,0 +1,74 @@
+{
+  "welcome": "¡Hola, {name}! 👋\n\nTe ayudaré a recibir notificaciones sobre eventos de tus calendarios.\n\nElige una acción:",
+  "main_menu": "Menú principal. Elige una acción:",
+  "menu_calendars": "📅 Mis calendarios",
+  "menu_settings": "⚙️ Configuración",
+  "menu_help": "ℹ️ Ayuda",
+  "menu_language": "🌐 Idioma",
+  "back_main": "🔙 Menú principal",
+  "back": "🔙 Atrás",
+  
+  "calendars_title": "📅 Tus calendarios:\n\n",
+  "calendars_empty": "📅 Aún no tienes calendarios conectados.\n\nElige un calendario para conectar:",
+  "connect_google": "➕ Conectar Google Calendar",
+  "connect_yandex": "➕ Conectar Yandex Calendar",
+  "disconnect_google": "❌ Desconectar Google",
+  "disconnect_yandex": "❌ Desconectar Yandex",
+  "google_connected": "✅ Google: {name}",
+  "yandex_connected": "✅ Yandex: {name}",
+  "connected": "Conectado",
+  "unknown": "Desconocido",
+  
+  "google_already_connected": "¡Google Calendar ya está conectado!",
+  "yandex_already_connected": "¡Yandex Calendar ya está conectado!",
+  "google_disconnected": "✅ Google Calendar desconectado",
+  "yandex_disconnected": "✅ Yandex Calendar desconectado",
+  "google_disconnected_alert": "¡Google Calendar desconectado!",
+  "yandex_disconnected_alert": "¡Yandex Calendar desconectado!",
+  
+  "connect_google_title": "🔗 Conectando Google Calendar\n\n1. Haz clic en el botón 'Autorizar'\n2. Permite el acceso al calendario\n3. Copia el código de autorización\n4. Envíamelo en el siguiente mensaje",
+  "connect_yandex_title": "🔗 Conectando Yandex Calendar\n\n1. Haz clic en el botón 'Autorizar'\n2. Permite el acceso al calendario\n3. Copia el código de autorización\n4. Envíamelo en el siguiente mensaje",
+  "authorize": "🔗 Autorizar",
+  
+  "google_success": "✅ ¡Google Calendar conectado con éxito!\nCalendario: {name}",
+  "yandex_success": "✅ ¡Yandex Calendar conectado con éxito!\nCalendario: {name}",
+  "error_connection": "❌ Error de conexión. Verifica el código e inténtalo de nuevo.\nUsa el menú para intentar de nuevo.",
+  "error_token": "❌ Error al obtener el token. Verifica el código e inténtalo de nuevo.",
+  
+  "calendar_info_google": "📅 Google Calendar\n\nNombre: {name}\nConectado: {date}",
+  "calendar_info_yandex": "📅 Yandex Calendar\n\nNombre: {name}\nConectado: {date}",
+  
+  "settings_title": "⚙️ Configuración de notificaciones\n\nTiempo de notificación: {minutes} minutos antes del evento\nEstado: {status}\n\nElige un parámetro para cambiar:",
+  "settings_time": "⏰ Tiempo de notificación: {minutes} min",
+  "settings_enabled": "✅ Activado",
+  "settings_disabled": "❌ Desactivado",
+  "settings_time_menu": "⏰ Elige el tiempo de notificación antes del evento:",
+  "time_set": "✅ Tiempo de notificación establecido: {minutes} minutos",
+  "time_set_alert": "Tiempo de notificación establecido: {minutes} minutos",
+  "notifications_toggled": "¡Notificaciones {status}!",
+  "notifications_enabled": "activadas",
+  "notifications_disabled": "desactivadas",
+  
+  "time_5": "5 minutos",
+  "time_10": "10 minutos",
+  "time_15": "15 minutos",
+  "time_30": "30 minutos",
+  "time_60": "60 minutos",
+  "time_120": "120 minutos",
+  
+  "help_text": "📚 Ayuda\n\n🔗 Conectar calendarios:\n• Selecciona 'Mis calendarios'\n• Haz clic en 'Conectar' para el calendario deseado\n• Autoriza y envía el código\n\n⚙️ Configuración:\n• Elige el tiempo de notificación (5-120 minutos)\n• Activa/desactiva las notificaciones\n\nEl bot verifica automáticamente los eventos y envía notificaciones en el tiempo especificado antes del evento.",
+  
+  "use_buttons": "Usa los botones para controlar el bot:",
+  
+  "language_title": "🌐 Configuración de idioma\n\nIdioma actual: {current}\n\nElige tu idioma:",
+  "language_changed": "✅ Idioma cambiado a {language}",
+  "language_english": "🇬🇧 Inglés",
+  "language_russian": "🇷🇺 Ruso",
+  "language_spanish": "🇪🇸 Español",
+  
+  "event_notification": "📅 Recordatorio de evento\n\n{title}\n\n⏰ Comienza: {start_time}\n📍 Ubicación: {location}\n\n{description}",
+  
+  "minutes": "minutos",
+  "starts_in": "Comienza en {minutes} minutos"
+}
+
