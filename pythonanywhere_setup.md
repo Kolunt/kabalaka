@@ -111,13 +111,41 @@ python3.10 create_admin.py
    - **Working directory**: `/home/yourusername/alarm-bot`
    - **WSGI configuration file**: выберите файл или создайте новый
 
-4. Отредактируйте WSGI файл (например, `/var/www/yourusername_pythonanywhere_com_wsgi.py`):
+4. **Проверьте путь к проекту**:
+   
+   Откройте **Bash консоль** и выполните:
+   ```bash
+   cd ~
+   pwd
+   ls -la
+   ```
+   
+   Проверьте, где находятся файлы проекта (`app.py`, `bot.py` и т.д.):
+   - Если файлы в `/home/kabalaka/` (прямо в домашней директории), используйте путь `/home/kabalaka`
+   - Если файлы в `/home/kabalaka/alarm-bot/`, используйте путь `/home/kabalaka/alarm-bot`
+   
+   Если проект ещё не клонирован, выполните:
+   ```bash
+   cd ~
+   git clone https://github.com/Kolunt/tg-alarm-bot.git alarm-bot
+   cd alarm-bot
+   pwd  # Запомните этот путь!
+   ```
+
+5. Отредактируйте WSGI файл (например, `/var/www/yourusername_pythonanywhere_com_wsgi.py`):
+   
+   ⚠️ **ВАЖНО**: 
+   - Убедитесь, что нет лишних пробелов или табов в начале строк!
+   - Замените `yourusername` на ваш реальный username (например, `kabalaka`)
+   - **Замените путь** на реальный путь, где находятся файлы проекта (проверьте через `ls -la` в Bash консоли)
+   
+   **Если проект в `/home/kabalaka/` (файлы прямо в домашней директории):**
    ```python
    import sys
    import os
 
    # Добавьте путь к проекту
-   path = '/home/yourusername/alarm-bot'
+   path = '/home/kabalaka'
    if path not in sys.path:
        sys.path.insert(0, path)
 
@@ -126,10 +154,28 @@ python3.10 create_admin.py
 
    # Импортируйте приложение
    from app import app as application
-
-   if __name__ == "__main__":
-       application.run()
    ```
+   
+   **Если проект в `/home/kabalaka/alarm-bot/`:**
+   ```python
+   import sys
+   import os
+
+   # Добавьте путь к проекту
+   path = '/home/kabalaka/alarm-bot'
+   if path not in sys.path:
+       sys.path.insert(0, path)
+
+   # Установите рабочую директорию
+   os.chdir(path)
+
+   # Импортируйте приложение
+   from app import app as application
+   ```
+   
+   ⚠️ **Примечание**: 
+   - На PythonAnywhere не нужно `if __name__ == "__main__"` в WSGI файле. Просто `application` должен быть доступен.
+   - Если получаете ошибку `FileNotFoundError`, проверьте правильность пути через Bash консоль: `ls -la /home/yourusername/` и найдите, где находится `app.py`
 
 5. Сохраните изменения и нажмите **Reload** в разделе Web
 
