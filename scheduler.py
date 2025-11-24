@@ -154,32 +154,22 @@ async def get_events_for_calendar(connection: Dict, calendar_type: str) -> List[
 async def send_notification(bot: Bot, user_id: int, event: Dict, calendar_type: str):
     """Отправка уведомления о событии"""
     try:
+        from i18n import t
+        
         event_start = event['start']
-        time_until = event_start - datetime.utcnow()
-        minutes_until = int(time_until.total_seconds() / 60)
+        start_time_str = event_start.strftime('%d.%m.%Y %H:%M')
         
-        calendar_name = "Google Calendar" if calendar_type == 'google' else "Yandex Calendar"
+        title = event.get('summary', 'Event')
+        location = event.get('location', '')
+        description = event.get('description', '')
+        if description and len(description) > 200:
+            description = description[:200] + "..."
         
-        message = (
-            f"🔔 Напоминание о событии\n\n"
-            f"📅 {event['summary']}\n"
-            f"⏰ Начало через {minutes_until} минут\n"
-            f"🕐 {event_start.strftime('%d.%m.%Y %H:%M')}\n"
-        )
-        
-        if event.get('location'):
-            message += f"📍 {event['location']}\n"
-        
-        if event.get('description'):
-            desc = event['description'][:200]
-            if len(event['description']) > 200:
-                desc += "..."
-            message += f"\n📝 {desc}\n"
-        
-        message += f"\n📱 Календарь: {calendar_name}"
-        
-        if event.get('htmlLink'):
-            message += f"\n🔗 {event['htmlLink']}"
+        message = t("event_notification", user_id, 
+                   title=title,
+                   start_time=start_time_str,
+                   location=location if location else '-',
+                   description=description if description else '-')
         
         await bot.send_message(chat_id=user_id, text=message)
         logger.info(f"Уведомление отправлено пользователю {user_id} о событии {event['id']}")

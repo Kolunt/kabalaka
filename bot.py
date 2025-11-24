@@ -7,6 +7,7 @@ from database import Database
 from calendar_google import GoogleCalendar
 from calendar_yandex import YandexCalendar
 from config import Config
+from i18n import t, get_language_name, SUPPORTED_LANGUAGES
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -21,12 +22,12 @@ yandex_cal = YandexCalendar()
 # Состояния для ожидания кода авторизации
 user_states = {}
 
-def get_main_menu():
+def get_main_menu(user_id: int):
     """Главное меню"""
     keyboard = [
-        [InlineKeyboardButton("📅 Мои календари", callback_data="menu_calendars")],
-        [InlineKeyboardButton("⚙️ Настройки", callback_data="menu_settings")],
-        [InlineKeyboardButton("ℹ️ Помощь", callback_data="menu_help")]
+        [InlineKeyboardButton(t("menu_calendars", user_id), callback_data="menu_calendars")],
+        [InlineKeyboardButton(t("menu_settings", user_id), callback_data="menu_settings")],
+        [InlineKeyboardButton(t("menu_help", user_id), callback_data="menu_help")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -40,26 +41,28 @@ def get_calendars_menu(user_id: int):
     has_yandex = any(c['calendar_type'] == 'yandex' for c in calendars)
     
     if not has_google:
-        keyboard.append([InlineKeyboardButton("➕ Подключить Google Calendar", callback_data="connect_google")])
+        keyboard.append([InlineKeyboardButton(t("connect_google", user_id), callback_data="connect_google")])
     else:
         google_cal = next((c for c in calendars if c['calendar_type'] == 'google'), None)
+        cal_name = google_cal.get('calendar_name', t("connected", user_id)) if google_cal else t("connected", user_id)
         keyboard.append([InlineKeyboardButton(
-            f"✅ Google: {google_cal.get('calendar_name', 'Подключен')}",
+            t("google_connected", user_id, name=cal_name),
             callback_data="info_google"
         )])
-        keyboard.append([InlineKeyboardButton("❌ Отключить Google", callback_data="disconnect_google")])
+        keyboard.append([InlineKeyboardButton(t("disconnect_google", user_id), callback_data="disconnect_google")])
     
     if not has_yandex:
-        keyboard.append([InlineKeyboardButton("➕ Подключить Yandex Calendar", callback_data="connect_yandex")])
+        keyboard.append([InlineKeyboardButton(t("connect_yandex", user_id), callback_data="connect_yandex")])
     else:
         yandex_cal = next((c for c in calendars if c['calendar_type'] == 'yandex'), None)
+        cal_name = yandex_cal.get('calendar_name', t("connected", user_id)) if yandex_cal else t("connected", user_id)
         keyboard.append([InlineKeyboardButton(
-            f"✅ Yandex: {yandex_cal.get('calendar_name', 'Подключен')}",
+            t("yandex_connected", user_id, name=cal_name),
             callback_data="info_yandex"
         )])
-        keyboard.append([InlineKeyboardButton("❌ Отключить Yandex", callback_data="disconnect_yandex")])
+        keyboard.append([InlineKeyboardButton(t("disconnect_yandex", user_id), callback_data="disconnect_yandex")])
     
-    keyboard.append([InlineKeyboardButton("🔙 Главное меню", callback_data="menu_main")])
+    keyboard.append([InlineKeyboardButton(t("back_main", user_id), callback_data="menu_main")])
     return InlineKeyboardMarkup(keyboard)
 
 def get_settings_menu(user_id: int):
@@ -69,24 +72,38 @@ def get_settings_menu(user_id: int):
     enabled = settings.get('enabled', True)
     
     keyboard = [
-        [InlineKeyboardButton(f"⏰ Время уведомления: {minutes} мин", callback_data="settings_time")],
+        [InlineKeyboardButton(t("settings_time", user_id, minutes=minutes), callback_data="settings_time")],
+        [InlineKeyboardButton(t("menu_language", user_id), callback_data="menu_language")],
         [
-            InlineKeyboardButton("✅ Включено" if enabled else "❌ Выключено", callback_data="toggle_notifications"),
-            InlineKeyboardButton("🔙 Главное меню", callback_data="menu_main")
+            InlineKeyboardButton(
+                t("settings_enabled", user_id) if enabled else t("settings_disabled", user_id),
+                callback_data="toggle_notifications"
+            ),
+            InlineKeyboardButton(t("back_main", user_id), callback_data="menu_main")
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_time_menu():
+def get_time_menu(user_id: int):
     """Меню выбора времени уведомления"""
     keyboard = [
-        [InlineKeyboardButton("5 минут", callback_data="time_5")],
-        [InlineKeyboardButton("10 минут", callback_data="time_10")],
-        [InlineKeyboardButton("15 минут", callback_data="time_15")],
-        [InlineKeyboardButton("30 минут", callback_data="time_30")],
-        [InlineKeyboardButton("60 минут", callback_data="time_60")],
-        [InlineKeyboardButton("120 минут", callback_data="time_120")],
-        [InlineKeyboardButton("🔙 Назад", callback_data="menu_settings")]
+        [InlineKeyboardButton(t("time_5", user_id), callback_data="time_5")],
+        [InlineKeyboardButton(t("time_10", user_id), callback_data="time_10")],
+        [InlineKeyboardButton(t("time_15", user_id), callback_data="time_15")],
+        [InlineKeyboardButton(t("time_30", user_id), callback_data="time_30")],
+        [InlineKeyboardButton(t("time_60", user_id), callback_data="time_60")],
+        [InlineKeyboardButton(t("time_120", user_id), callback_data="time_120")],
+        [InlineKeyboardButton(t("back", user_id), callback_data="menu_settings")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_language_menu(user_id: int):
+    """Меню выбора языка"""
+    keyboard = [
+        [InlineKeyboardButton(t("language_english", user_id), callback_data="lang_en")],
+        [InlineKeyboardButton(t("language_russian", user_id), callback_data="lang_ru")],
+        [InlineKeyboardButton(t("language_spanish", user_id), callback_data="lang_es")],
+        [InlineKeyboardButton(t("back", user_id), callback_data="menu_settings")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -95,13 +112,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.add_user(user.id, user.username, user.first_name)
     
-    welcome_text = (
-        f"Привет, {user.first_name}! 👋\n\n"
-        "Я помогу тебе получать уведомления о событиях из твоих календарей.\n\n"
-        "Выберите действие:"
-    )
+    welcome_text = t("welcome", user.id, name=user.first_name)
     
-    await update.message.reply_text(welcome_text, reply_markup=get_main_menu())
+    await update.message.reply_text(welcome_text, reply_markup=get_main_menu(user.id))
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик всех callback кнопок"""
@@ -113,101 +126,86 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Главное меню
     if data == "menu_main":
-        text = "Главное меню. Выберите действие:"
-        await query.edit_message_text(text, reply_markup=get_main_menu())
+        text = t("main_menu", user_id)
+        await query.edit_message_text(text, reply_markup=get_main_menu(user_id))
     
     # Меню календарей
     elif data == "menu_calendars":
         calendars = db.get_user_calendars(user_id)
         if calendars:
-            text = "📅 Ваши календари:\n\n"
+            text = t("calendars_title", user_id)
             for cal in calendars:
                 cal_type = "Google" if cal['calendar_type'] == 'google' else "Yandex"
-                text += f"• {cal_type}: {cal.get('calendar_name', 'Неизвестно')}\n"
+                cal_name = cal.get('calendar_name', t("unknown", user_id))
+                text += f"• {cal_type}: {cal_name}\n"
         else:
-            text = "📅 У вас пока нет подключенных календарей.\n\nВыберите календарь для подключения:"
+            text = t("calendars_empty", user_id)
         await query.edit_message_text(text, reply_markup=get_calendars_menu(user_id))
     
     # Подключение Google
     elif data == "connect_google":
         existing = db.get_calendar_connection(user_id, 'google')
         if existing:
-            await query.answer("Google Calendar уже подключен!", show_alert=True)
+            await query.answer(t("google_already_connected", user_id), show_alert=True)
             return
         
         auth_url = google_cal.get_authorization_url()
         user_states[user_id] = 'waiting_google_code'
         
         keyboard = [
-            [InlineKeyboardButton("🔗 Авторизоваться", url=auth_url)],
-            [InlineKeyboardButton("🔙 Назад", callback_data="menu_calendars")]
+            [InlineKeyboardButton(t("authorize", user_id), url=auth_url)],
+            [InlineKeyboardButton(t("back", user_id), callback_data="menu_calendars")]
         ]
         
-        text = (
-            "🔗 Подключение Google Calendar\n\n"
-            "1. Нажмите кнопку 'Авторизоваться'\n"
-            "2. Разрешите доступ к календарю\n"
-            "3. Скопируйте код авторизации\n"
-            "4. Отправьте его мне в следующем сообщении"
-        )
+        text = t("connect_google_title", user_id)
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     
     # Подключение Yandex
     elif data == "connect_yandex":
         existing = db.get_calendar_connection(user_id, 'yandex')
         if existing:
-            await query.answer("Yandex Calendar уже подключен!", show_alert=True)
+            await query.answer(t("yandex_already_connected", user_id), show_alert=True)
             return
         
         auth_url = yandex_cal.get_authorization_url()
         user_states[user_id] = 'waiting_yandex_code'
         
         keyboard = [
-            [InlineKeyboardButton("🔗 Авторизоваться", url=auth_url)],
-            [InlineKeyboardButton("🔙 Назад", callback_data="menu_calendars")]
+            [InlineKeyboardButton(t("authorize", user_id), url=auth_url)],
+            [InlineKeyboardButton(t("back", user_id), callback_data="menu_calendars")]
         ]
         
-        text = (
-            "🔗 Подключение Yandex Calendar\n\n"
-            "1. Нажмите кнопку 'Авторизоваться'\n"
-            "2. Разрешите доступ к календарю\n"
-            "3. Скопируйте код авторизации\n"
-            "4. Отправьте его мне в следующем сообщении"
-        )
+        text = t("connect_yandex_title", user_id)
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     
     # Отключение календарей
     elif data == "disconnect_google":
         db.delete_calendar_connection(user_id, 'google')
-        await query.answer("Google Calendar отключен!", show_alert=True)
-        await query.edit_message_text("✅ Google Calendar отключен", reply_markup=get_calendars_menu(user_id))
+        await query.answer(t("google_disconnected_alert", user_id), show_alert=True)
+        await query.edit_message_text(t("google_disconnected", user_id), reply_markup=get_calendars_menu(user_id))
     
     elif data == "disconnect_yandex":
         db.delete_calendar_connection(user_id, 'yandex')
-        await query.answer("Yandex Calendar отключен!", show_alert=True)
-        await query.edit_message_text("✅ Yandex Calendar отключен", reply_markup=get_calendars_menu(user_id))
+        await query.answer(t("yandex_disconnected_alert", user_id), show_alert=True)
+        await query.edit_message_text(t("yandex_disconnected", user_id), reply_markup=get_calendars_menu(user_id))
     
     # Информация о календарях
     elif data == "info_google":
         connection = db.get_calendar_connection(user_id, 'google')
         if connection:
-            text = (
-                f"📅 Google Calendar\n\n"
-                f"Название: {connection.get('calendar_name', 'Неизвестно')}\n"
-                f"Подключен: {connection.get('created_at', 'N/A')[:10] if connection.get('created_at') else 'N/A'}"
-            )
-            keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="menu_calendars")]]
+            cal_name = connection.get('calendar_name', t("unknown", user_id))
+            date = connection.get('created_at', 'N/A')[:10] if connection.get('created_at') else 'N/A'
+            text = t("calendar_info_google", user_id, name=cal_name, date=date)
+            keyboard = [[InlineKeyboardButton(t("back", user_id), callback_data="menu_calendars")]]
             await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     
     elif data == "info_yandex":
         connection = db.get_calendar_connection(user_id, 'yandex')
         if connection:
-            text = (
-                f"📅 Yandex Calendar\n\n"
-                f"Название: {connection.get('calendar_name', 'Неизвестно')}\n"
-                f"Подключен: {connection.get('created_at', 'N/A')[:10] if connection.get('created_at') else 'N/A'}"
-            )
-            keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="menu_calendars")]]
+            cal_name = connection.get('calendar_name', t("unknown", user_id))
+            date = connection.get('created_at', 'N/A')[:10] if connection.get('created_at') else 'N/A'
+            text = t("calendar_info_yandex", user_id, name=cal_name, date=date)
+            keyboard = [[InlineKeyboardButton(t("back", user_id), callback_data="menu_calendars")]]
             await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     
     # Меню настроек
@@ -215,27 +213,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         settings = db.get_notification_settings(user_id)
         minutes = settings.get('notification_minutes', 15)
         enabled = settings.get('enabled', True)
+        status = t("settings_enabled", user_id) if enabled else t("settings_disabled", user_id)
         
-        text = (
-            f"⚙️ Настройки уведомлений\n\n"
-            f"Время уведомления: {minutes} минут до события\n"
-            f"Статус: {'✅ Включено' if enabled else '❌ Выключено'}\n\n"
-            f"Выберите параметр для изменения:"
-        )
+        text = t("settings_title", user_id, minutes=minutes, status=status)
         await query.edit_message_text(text, reply_markup=get_settings_menu(user_id))
     
     # Выбор времени
     elif data == "settings_time":
-        text = "⏰ Выберите время уведомления до начала события:"
-        await query.edit_message_text(text, reply_markup=get_time_menu())
+        text = t("settings_time_menu", user_id)
+        await query.edit_message_text(text, reply_markup=get_time_menu(user_id))
     
     # Установка времени
     elif data.startswith("time_"):
         minutes = int(data.split("_")[1])
         db.update_notification_settings(user_id, minutes)
-        await query.answer(f"Время уведомления установлено: {minutes} минут", show_alert=True)
+        await query.answer(t("time_set_alert", user_id, minutes=minutes), show_alert=True)
         await query.edit_message_text(
-            f"✅ Время уведомления установлено: {minutes} минут",
+            t("time_set", user_id, minutes=minutes),
             reply_markup=get_settings_menu(user_id)
         )
     
@@ -244,32 +238,41 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         settings = db.get_notification_settings(user_id)
         new_enabled = not settings.get('enabled', True)
         db.update_notification_settings(user_id, settings.get('notification_minutes', 15), new_enabled)
-        status = "включены" if new_enabled else "выключены"
-        await query.answer(f"Уведомления {status}!", show_alert=True)
-        await query.edit_message_text(
-            f"⚙️ Настройки уведомлений\n\n"
-            f"Время уведомления: {settings.get('notification_minutes', 15)} минут до события\n"
-            f"Статус: {'✅ Включено' if new_enabled else '❌ Выключено'}\n\n"
-            f"Выберите параметр для изменения:",
-            reply_markup=get_settings_menu(user_id)
-        )
+        status_text = t("notifications_enabled", user_id) if new_enabled else t("notifications_disabled", user_id)
+        await query.answer(t("notifications_toggled", user_id, status=status_text), show_alert=True)
+        status = t("settings_enabled", user_id) if new_enabled else t("settings_disabled", user_id)
+        text = t("settings_title", user_id, minutes=settings.get('notification_minutes', 15), status=status)
+        await query.edit_message_text(text, reply_markup=get_settings_menu(user_id))
     
     # Помощь
     elif data == "menu_help":
-        text = (
-            "📚 Помощь\n\n"
-            "🔗 Подключение календарей:\n"
-            "• Выберите 'Мои календари'\n"
-            "• Нажмите 'Подключить' для нужного календаря\n"
-            "• Авторизуйтесь и отправьте код\n\n"
-            "⚙️ Настройки:\n"
-            "• Выберите время уведомления (5-120 минут)\n"
-            "• Включите/выключите уведомления\n\n"
-            "Бот автоматически проверяет события и отправляет уведомления "
-            "за указанное время до начала события."
-        )
-        keyboard = [[InlineKeyboardButton("🔙 Главное меню", callback_data="menu_main")]]
+        text = t("help_text", user_id)
+        keyboard = [[InlineKeyboardButton(t("back_main", user_id), callback_data="menu_main")]]
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    # Меню выбора языка
+    elif data == "menu_language":
+        from i18n import get_user_language, get_language_name
+        current_lang = get_user_language(user_id)
+        current_name = get_language_name(current_lang)
+        text = t("language_title", user_id, current=current_name)
+        await query.edit_message_text(text, reply_markup=get_language_menu(user_id))
+    
+    # Установка языка
+    elif data.startswith("lang_"):
+        from i18n import set_user_language, get_language_name
+        lang_code = data.split("_")[1]
+        if lang_code in SUPPORTED_LANGUAGES:
+            set_user_language(user_id, lang_code)
+            lang_name = get_language_name(lang_code)
+            await query.answer(t("language_changed", user_id, language=lang_name), show_alert=True)
+            # Обновляем меню настроек с новым языком
+            settings = db.get_notification_settings(user_id)
+            minutes = settings.get('notification_minutes', 15)
+            enabled = settings.get('enabled', True)
+            status = t("settings_enabled", user_id) if enabled else t("settings_disabled", user_id)
+            text = t("settings_title", user_id, minutes=minutes, status=status)
+            await query.edit_message_text(text, reply_markup=get_settings_menu(user_id))
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик текстовых сообщений (для кодов авторизации)"""
@@ -303,16 +306,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 del user_states[user_id]
                 
                 await update.message.reply_text(
-                    f"✅ Google Calendar успешно подключен!\n"
-                    f"Календарь: {calendar_info.get('name')}",
-                    reply_markup=get_main_menu()
+                    t("google_success", user_id, name=calendar_info.get('name')),
+                    reply_markup=get_main_menu(user_id)
                 )
             except Exception as e:
                 logger.error(f"Ошибка при авторизации Google: {e}")
                 await update.message.reply_text(
-                    "❌ Ошибка при подключении. Проверьте код и попробуйте снова.\n"
-                    "Используйте меню для повторной попытки.",
-                    reply_markup=get_main_menu()
+                    t("error_connection", user_id),
+                    reply_markup=get_main_menu(user_id)
                 )
                 del user_states[user_id]
         
@@ -322,8 +323,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 if not token_data:
                     await update.message.reply_text(
-                        "❌ Ошибка при получении токена. Проверьте код и попробуйте снова.",
-                        reply_markup=get_main_menu()
+                        t("error_token", user_id),
+                        reply_markup=get_main_menu(user_id)
                     )
                     del user_states[user_id]
                     return
@@ -347,23 +348,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 del user_states[user_id]
                 
                 await update.message.reply_text(
-                    f"✅ Yandex Calendar успешно подключен!\n"
-                    f"Календарь: {calendar_info.get('name')}",
-                    reply_markup=get_main_menu()
+                    t("yandex_success", user_id, name=calendar_info.get('name')),
+                    reply_markup=get_main_menu(user_id)
                 )
             except Exception as e:
                 logger.error(f"Ошибка при авторизации Yandex: {e}")
                 await update.message.reply_text(
-                    "❌ Ошибка при подключении. Проверьте код и попробуйте снова.\n"
-                    "Используйте меню для повторной попытки.",
-                    reply_markup=get_main_menu()
+                    t("error_connection", user_id),
+                    reply_markup=get_main_menu(user_id)
                 )
                 del user_states[user_id]
     else:
         # Если не ожидаем код, показываем главное меню
         await update.message.reply_text(
-            "Используйте кнопки для управления ботом:",
-            reply_markup=get_main_menu()
+            t("use_buttons", user_id),
+            reply_markup=get_main_menu(user_id)
         )
 
 def setup_bot():

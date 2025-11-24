@@ -37,9 +37,16 @@ class Database:
                     user_id INTEGER PRIMARY KEY,
                     username TEXT,
                     first_name TEXT,
+                    language TEXT DEFAULT 'en',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            
+            # Добавляем колонку language, если её нет (для существующих БД)
+            try:
+                cursor.execute('ALTER TABLE users ADD COLUMN language TEXT DEFAULT \'en\'')
+            except sqlite3.OperationalError:
+                pass  # Колонка уже существует
             
             # Таблица подключений к календарям
             cursor.execute('''
@@ -335,4 +342,22 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('SELECT key, value FROM system_settings')
             return {row['key']: row['value'] for row in cursor.fetchall()}
+    
+    def get_user(self, user_id: int) -> Optional[Dict]:
+        """Получение информации о пользователе"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+    
+    def update_user_language(self, user_id: int, language: str):
+        """Обновление языка пользователя"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE users SET language = ? WHERE user_id = ?
+            ''', (language, user_id))
 
