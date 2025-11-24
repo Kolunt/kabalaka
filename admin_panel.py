@@ -369,6 +369,7 @@ USERS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
             <th>ID</th>
             <th>Имя</th>
             <th>Username</th>
+            <th>Язык</th>
             <th>Календари</th>
             <th>Уведомлений</th>
             <th>Дата регистрации</th>
@@ -379,6 +380,13 @@ USERS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
             <td>{{ user.user_id }}</td>
             <td>{{ user.first_name or 'N/A' }}</td>
             <td>@{{ user.username or 'N/A' }}</td>
+            <td>
+                {% if user.language %}
+                    <span class="badge badge-secondary">{{ language_names.get(user.language, user.language.upper()) }}</span>
+                {% else %}
+                    <span class="badge badge-secondary">EN (default)</span>
+                {% endif %}
+            </td>
             <td><span class="badge badge-info">{{ user.calendar_count }}</span></td>
             <td><span class="badge badge-success">{{ user.notification_count }}</span></td>
             <td>{{ user.created_at[:10] if user.created_at else 'N/A' }}</td>
@@ -441,8 +449,10 @@ def dashboard():
 @login_required
 def users():
     """Страница со списком пользователей"""
+    from i18n import SUPPORTED_LANGUAGES
     users_list = db.get_all_users()
-    return render_template_string(USERS_TEMPLATE, users=users_list, active_page='users')
+    language_names = SUPPORTED_LANGUAGES
+    return render_template_string(USERS_TEMPLATE, users=users_list, language_names=language_names, active_page='users')
 
 SETTINGS_TEMPLATE = BASE_TEMPLATE.replace('{% block content %}{% endblock %}', '''
 {% block content %}
@@ -664,6 +674,13 @@ def user_details(user_id):
     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         <p><strong>Имя:</strong> {{ user.first_name or 'N/A' }}</p>
         <p><strong>Username:</strong> @{{ user.username or 'N/A' }}</p>
+        <p><strong>Язык:</strong> 
+            {% if user.language %}
+                <span class="badge badge-secondary">{{ language_names.get(user.language, user.language.upper()) }}</span>
+            {% else %}
+                <span class="badge badge-secondary">English (default)</span>
+            {% endif %}
+        </p>
         <p><strong>Календарей:</strong> {{ user.calendar_count }}</p>
         <p><strong>Уведомлений:</strong> {{ user.notification_count }}</p>
         <p><strong>Дата регистрации:</strong> {{ user.created_at }}</p>
@@ -682,7 +699,8 @@ def user_details(user_id):
 {% endblock %}
 ''')
     from flask import render_template_string
-    return render_template_string(template, user=user, calendars=calendars, settings=settings, active_page='users')
+    from i18n import SUPPORTED_LANGUAGES
+    return render_template_string(template, user=user, calendars=calendars, settings=settings, language_names=SUPPORTED_LANGUAGES, active_page='users')
 
 @admin_bp.route('/api/bot/status')
 @login_required
