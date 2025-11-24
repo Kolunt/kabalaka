@@ -34,20 +34,27 @@ async def process_updates_once():
         try:
             # Используем get_updates для получения накопившихся обновлений
             bot = application.bot
+            
+            # Получаем последний offset, чтобы обработать все накопившиеся обновления
             updates = await bot.get_updates(
-                offset=-1,  # Получаем последнее обновление
-                timeout=1,  # Короткий timeout
+                timeout=5,  # Короткий timeout для получения обновлений
                 allowed_updates=None
             )
             
             if updates:
-                logger.info(f"Получено {len(updates)} обновлений")
+                logger.info(f"Получено {len(updates)} обновлений, обработка...")
                 # Обрабатываем обновления через application
                 for update in updates:
-                    await application.process_update(update)
-                    # Обновляем offset для следующего запроса
-                    if update.update_id:
-                        await bot.get_updates(offset=update.update_id + 1, timeout=0)
+                    try:
+                        await application.process_update(update)
+                    except Exception as e:
+                        logger.error(f"Ошибка при обработке обновления {update.update_id}: {e}")
+                
+                # Обновляем offset, чтобы Telegram знал, что обновления обработаны
+                if updates:
+                    last_update_id = max(u.update_id for u in updates)
+                    await bot.get_updates(offset=last_update_id + 1, timeout=0)
+                    logger.info(f"Обработано {len(updates)} обновлений, последний offset: {last_update_id + 1}")
             else:
                 logger.info("Новых обновлений нет")
                 
