@@ -424,24 +424,26 @@ def cron_check_broadcasts():
 def cron_run_bot():
     """Endpoint для запуска бота на обработку накопившихся сообщений (вызывается внешним cron-сервисом)"""
     try:
-        logger.info("Запуск бота через /cron/run-bot")
-        # Запускаем бота в фоне для обработки накопившихся сообщений
+        logger.info("Запуск обработки обновлений через /cron/run-bot")
+        
+        # Используем process_updates_once вместо бесконечного polling
+        # Это обработает накопившиеся обновления и завершится
         import threading
-        from run_bot import main as run_bot_main
+        from process_updates import process_updates_once
         
-        def run_bot_thread():
+        def process_updates_thread():
             try:
-                asyncio.run(run_bot_main())
+                asyncio.run(process_updates_once())
             except Exception as e:
-                logger.error(f"Ошибка в потоке бота: {e}")
+                logger.error(f"Ошибка при обработке обновлений: {e}", exc_info=True)
         
-        thread = threading.Thread(target=run_bot_thread)
+        thread = threading.Thread(target=process_updates_thread)
         thread.daemon = True
         thread.start()
         
-        return {"status": "started", "message": "Бот запущен для обработки сообщений"}, 200
+        return {"status": "started", "message": "Обработка обновлений запущена"}, 200
     except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {e}")
+        logger.error(f"Ошибка при запуске обработки обновлений: {e}", exc_info=True)
         return {"status": "error", "message": str(e)}, 500
 
 @app.route('/cron/run-all')
