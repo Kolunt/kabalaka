@@ -3,6 +3,7 @@
 
 import re
 import sys
+from datetime import datetime
 
 def read_version():
     """Читает текущую версию из VERSION файла"""
@@ -12,6 +13,52 @@ def read_version():
         return version
     except FileNotFoundError:
         return "0.0.0"
+
+def update_changelog(old_version, new_version):
+    """Добавляет новую секцию в CHANGELOG.md"""
+    try:
+        with open('CHANGELOG.md', 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Формируем новую секцию
+        today = datetime.now().strftime('%Y-%m-%d')
+        new_section = f"""## [{new_version}] - {today}
+
+### Добавлено
+- (Заполните список изменений)
+
+### Изменено
+- (Заполните список изменений)
+
+### Исправлено
+- (Заполните список изменений)
+
+"""
+        
+        # Вставляем новую секцию после заголовка
+        # Ищем паттерн "## [X.Y.Z]" и вставляем перед ним
+        pattern = r'(## \[.*?\].*?\n)'
+        match = re.search(pattern, content)
+        
+        if match:
+            # Вставляем новую секцию перед первой существующей версией
+            content = content.replace(match.group(1), new_section + match.group(1), 1)
+        else:
+            # Если паттерн не найден, добавляем в начало после заголовка
+            header_end = content.find('\n\n')
+            if header_end != -1:
+                content = content[:header_end + 2] + new_section + content[header_end + 2:]
+            else:
+                content = new_section + '\n' + content
+        
+        with open('CHANGELOG.md', 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        print(f"✓ Добавлена секция для версии {new_version} в CHANGELOG.md")
+        print(f"  ⚠ Не забудьте заполнить список изменений!")
+        
+    except FileNotFoundError:
+        print("⚠ CHANGELOG.md не найден, пропускаем обновление")
 
 def write_version(version):
     """Записывает версию в VERSION файл и __init__.py"""
@@ -57,6 +104,7 @@ def main():
     print(f"Новая версия: {new_version}")
     
     write_version(new_version)
+    update_changelog(current_version, new_version)
     print(f"✓ Версия обновлена до {new_version}")
     
     return new_version

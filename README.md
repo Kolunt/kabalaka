@@ -1,6 +1,7 @@
 # Calendar Alarm Bot
 
 [![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/Kolunt/tg-alarm-bot)
+[![Changelog](https://img.shields.io/badge/changelog-0.0.1-green.svg)](CHANGELOG.md)
 
 Telegram-бот для получения уведомлений о событиях из различных календарей (Яндекс Календарь и Google Календарь).
 
@@ -151,6 +152,7 @@ alarm-bot/
 - Текущая версия: **0.0.1**
 - Файл версии: `VERSION`
 - Версия также доступна в `__init__.py` как `__version__`
+- История изменений: `CHANGELOG.md`
 
 ### Обновление версии
 
@@ -164,6 +166,13 @@ python bump_version.py
 - Увеличит версию на 0.0.1 (например, 0.0.1 → 0.0.2)
 - Обновит файл `VERSION`
 - Обновит `__version__` в `__init__.py`
+- Добавит новую секцию в `CHANGELOG.md` с текущей датой
+
+**Важно:** После запуска `bump_version.py` не забудьте заполнить список изменений в `CHANGELOG.md` перед коммитом!
+
+### История изменений
+
+Все изменения проекта документируются в файле [CHANGELOG.md](CHANGELOG.md).
 
 ## Лицензия
 
