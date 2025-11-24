@@ -81,8 +81,8 @@ async def get_events_for_calendar(connection: Dict, calendar_type: str) -> List[
                 'token': connection['access_token'],
                 'refresh_token': connection.get('refresh_token'),
                 'token_uri': 'https://oauth2.googleapis.com/token',
-                'client_id': Config.GOOGLE_CLIENT_ID,
-                'client_secret': Config.GOOGLE_CLIENT_SECRET,
+                'client_id': Config.get_google_client_id(),
+                'client_secret': Config.get_google_client_secret(),
                 'scopes': Config.GOOGLE_SCOPES
             }
             

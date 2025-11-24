@@ -12,17 +12,24 @@ class YandexCalendar:
     API_BASE_URL = "https://caldav.yandex.ru"
     
     def __init__(self, client_id: str = None, client_secret: str = None, redirect_uri: str = None):
-        self.client_id = client_id or Config.YANDEX_CLIENT_ID
-        self.client_secret = client_secret or Config.YANDEX_CLIENT_SECRET
-        self.redirect_uri = redirect_uri or Config.YANDEX_REDIRECT_URI
+        self.client_id = client_id or Config.get_yandex_client_id()
+        self.client_secret = client_secret or Config.get_yandex_client_secret()
+        self.redirect_uri = redirect_uri or Config.get_yandex_redirect_uri()
     
-    def get_authorization_url(self) -> str:
-        """Получение URL для авторизации"""
+    def get_authorization_url(self, user_id: int = None) -> str:
+        """Получение URL для авторизации
+        
+        Args:
+            user_id: ID пользователя Telegram для связи через state параметр
+        """
         params = {
             'response_type': 'code',
             'client_id': self.client_id,
             'redirect_uri': self.redirect_uri
         }
+        # Добавляем state с user_id, если передан
+        if user_id:
+            params['state'] = str(user_id)
         return f"{self.AUTH_URL}?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
     
     def get_token_from_code(self, code: str) -> Optional[Dict]:

@@ -17,17 +17,42 @@ BOT_SCRIPT = 'run_bot.py'
 def get_bot_pid() -> Optional[int]:
     """Получение PID процесса бота"""
     try:
+        # Сначала проверяем PID файл
         if os.path.exists(BOT_PID_FILE):
             with open(BOT_PID_FILE, 'r') as f:
                 pid = int(f.read().strip())
             # Проверяем, что процесс еще существует
             try:
-                os.kill(pid, 0)  # Проверка без отправки сигнала
-                return pid
-            except OSError:
-                # Процесс не существует
-                os.remove(BOT_PID_FILE)
-                return None
+                if os.name == 'nt':  # Windows
+                    import psutil
+                    psutil.Process(pid)
+                    return pid
+                else:  # Unix/Linux
+                    os.kill(pid, 0)  # Проверка без отправки сигнала
+                    return pid
+            except (OSError, psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, ImportError):
+                # Процесс не существует, удаляем файл
+                try:
+                    os.remove(BOT_PID_FILE)
+                except OSError:
+                    pass
+        
+        # Если PID файла нет или процесс не найден, ищем по имени скрипта
+        try:
+            import psutil
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline and any(BOT_SCRIPT in str(arg) for arg in cmdline):
+                        real_pid = proc.info['pid']
+                        # Сохраняем найденный PID
+                        save_bot_pid(real_pid)
+                        return real_pid
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+        except ImportError:
+            # psutil не установлен, пропускаем поиск
+            pass
     except Exception as e:
         logger.error(f"Ошибка при чтении PID файла: {e}")
     return None
@@ -42,7 +67,39 @@ def save_bot_pid(pid: int):
 
 def is_bot_running() -> bool:
     """Проверка, запущен ли бот"""
-    return get_bot_pid() is not None
+    pid = get_bot_pid()
+    if pid is None:
+        return False
+    
+    # Проверяем, что процесс действительно существует
+    try:
+        if os.name == 'nt':  # Windows
+            # На Windows используем psutil или проверку через tasklist
+            try:
+                import psutil
+                psutil.Process(pid)
+                return True
+            except (ImportError, psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                # Если psutil не установлен или процесс не найден, пробуем через subprocess
+                result = subprocess.run(
+                    ['tasklist', '/FI', f'PID eq {pid}'],
+                    capture_output=True,
+                    text=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                )
+                return str(pid) in result.stdout
+        else:  # Unix/Linux
+            os.kill(pid, 0)
+            return True
+    except (OSError, subprocess.SubprocessError, Exception) as e:
+        # Процесс не существует, удаляем PID файл
+        logger.debug(f"Процесс {pid} не найден: {e}")
+        if os.path.exists(BOT_PID_FILE):
+            try:
+                os.remove(BOT_PID_FILE)
+            except OSError:
+                pass
+        return False
 
 def stop_bot() -> bool:
     """Остановка бота"""

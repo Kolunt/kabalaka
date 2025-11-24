@@ -21,16 +21,48 @@ class Config:
             pass
         return os.getenv('TELEGRAM_BOT_TOKEN', '')
     
-    # Google Calendar
-    GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
-    GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
-    GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/callback/google')
+    # Вспомогательный метод для получения настроек из БД или .env
+    @staticmethod
+    def _get_setting(key: str, default: str = ''):
+        """Получение настройки из БД или .env"""
+        try:
+            from database import Database
+            db = Database()
+            value = db.get_system_setting(key)
+            if value:
+                return value
+        except Exception:
+            pass
+        return os.getenv(key, default)
+    
+    # Google Calendar - используем методы для чтения из БД
+    @staticmethod
+    def get_google_client_id():
+        return Config._get_setting('google_client_id', os.getenv('GOOGLE_CLIENT_ID', ''))
+    
+    @staticmethod
+    def get_google_client_secret():
+        return Config._get_setting('google_client_secret', os.getenv('GOOGLE_CLIENT_SECRET', ''))
+    
+    @staticmethod
+    def get_google_redirect_uri():
+        return Config._get_setting('google_redirect_uri', os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/callback/google'))
+    
     GOOGLE_SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
     
-    # Yandex Calendar
-    YANDEX_CLIENT_ID = os.getenv('YANDEX_CLIENT_ID', '')
-    YANDEX_CLIENT_SECRET = os.getenv('YANDEX_CLIENT_SECRET', '')
-    YANDEX_REDIRECT_URI = os.getenv('YANDEX_REDIRECT_URI', 'http://localhost:5000/callback/yandex')
+    # Yandex Calendar - используем методы для чтения из БД
+    @staticmethod
+    def get_yandex_client_id():
+        return Config._get_setting('yandex_client_id', os.getenv('YANDEX_CLIENT_ID', ''))
+    
+    @staticmethod
+    def get_yandex_client_secret():
+        return Config._get_setting('yandex_client_secret', os.getenv('YANDEX_CLIENT_SECRET', ''))
+    
+    @staticmethod
+    def get_yandex_redirect_uri():
+        return Config._get_setting('yandex_redirect_uri', os.getenv('YANDEX_REDIRECT_URI', 'http://localhost:5000/callback/yandex'))
+    
     YANDEX_SCOPES = ['caldav:read']
     
     # Database

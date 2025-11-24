@@ -15,12 +15,16 @@ class GoogleCalendar:
     SCOPES = Config.GOOGLE_SCOPES
     
     def __init__(self, client_id: str = None, client_secret: str = None, redirect_uri: str = None):
-        self.client_id = client_id or Config.GOOGLE_CLIENT_ID
-        self.client_secret = client_secret or Config.GOOGLE_CLIENT_SECRET
-        self.redirect_uri = redirect_uri or Config.GOOGLE_REDIRECT_URI
+        self.client_id = client_id or Config.get_google_client_id()
+        self.client_secret = client_secret or Config.get_google_client_secret()
+        self.redirect_uri = redirect_uri or Config.get_google_redirect_uri()
     
-    def get_authorization_url(self) -> str:
-        """Получение URL для авторизации"""
+    def get_authorization_url(self, user_id: int = None) -> str:
+        """Получение URL для авторизации
+        
+        Args:
+            user_id: ID пользователя Telegram для связи через state параметр
+        """
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -34,10 +38,15 @@ class GoogleCalendar:
             scopes=self.SCOPES
         )
         flow.redirect_uri = self.redirect_uri
+        
+        # Используем user_id в state для связи пользователя с авторизацией
+        state = str(user_id) if user_id else None
+        
         authorization_url, _ = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
-            prompt='consent'
+            prompt='consent',
+            state=state
         )
         return authorization_url
     

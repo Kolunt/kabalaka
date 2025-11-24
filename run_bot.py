@@ -23,16 +23,33 @@ async def main():
         # Настройка бота
         application = setup_bot()
         
+        # Инициализируем приложение
+        await application.initialize()
+        
+        # Запускаем приложение
+        await application.start()
+        
         logger.info("Бот запущен и готов к работе!")
         
-        # Запуск бота в режиме polling
-        # Используем run_polling, который правильно управляет event loop
-        await application.run_polling(
+        # Запускаем updater
+        await application.updater.start_polling(
             drop_pending_updates=True,
             allowed_updates=None
         )
-    except KeyboardInterrupt:
-        logger.info("Остановка бота...")
+        
+        # Ждем остановки
+        try:
+            await asyncio.Event().wait()  # Ждем бесконечно
+        except KeyboardInterrupt:
+            logger.info("Остановка бота...")
+        finally:
+            # Останавливаем updater
+            await application.updater.stop()
+            # Останавливаем приложение
+            await application.stop()
+            # Закрываем приложение
+            await application.shutdown()
+            
     except Exception as e:
         logger.error(f"Критическая ошибка в боте: {e}", exc_info=True)
         raise

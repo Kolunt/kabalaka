@@ -149,7 +149,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(t("google_already_connected", user_id), show_alert=True)
             return
         
-        auth_url = google_cal.get_authorization_url()
+        # Передаем user_id в authorization URL для автоматической обработки в callback
+        auth_url = google_cal.get_authorization_url(user_id=user_id)
         user_states[user_id] = 'waiting_google_code'
         
         keyboard = [
@@ -167,7 +168,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(t("yandex_already_connected", user_id), show_alert=True)
             return
         
-        auth_url = yandex_cal.get_authorization_url()
+        # Для Yandex также передаем user_id (если поддерживается)
+        auth_url = yandex_cal.get_authorization_url(user_id=user_id)
         user_states[user_id] = 'waiting_yandex_code'
         
         keyboard = [
