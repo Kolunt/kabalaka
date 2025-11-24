@@ -392,8 +392,88 @@ def health():
     """Health check endpoint"""
     return {"status": "ok"}, 200
 
-# Примечание: На PythonAnywhere бот должен запускаться отдельно через Always-on task
-# используя run_bot.py, а Flask приложение запускается автоматически через Web app
+@app.route('/cron/wake')
+def cron_wake():
+    """Endpoint для пробуждения Web app (вызывается внешним cron-сервисом)"""
+    logger.info("Web app пробужден через /cron/wake")
+    return {"status": "awake", "message": "Web app активен"}, 200
+
+@app.route('/cron/check-events')
+def cron_check_events():
+    """Endpoint для проверки событий (вызывается внешним cron-сервисом)"""
+    try:
+        logger.info("Запуск проверки событий через /cron/check-events")
+        asyncio.run(check_and_notify_events())
+        return {"status": "success", "message": "Проверка событий выполнена"}, 200
+    except Exception as e:
+        logger.error(f"Ошибка при проверке событий: {e}")
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route('/cron/check-broadcasts')
+def cron_check_broadcasts():
+    """Endpoint для проверки отложенных рассылок (вызывается внешним cron-сервисом)"""
+    try:
+        logger.info("Запуск проверки рассылок через /cron/check-broadcasts")
+        process_pending_broadcasts()
+        return {"status": "success", "message": "Проверка рассылок выполнена"}, 200
+    except Exception as e:
+        logger.error(f"Ошибка при проверке рассылок: {e}")
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route('/cron/run-bot')
+def cron_run_bot():
+    """Endpoint для запуска бота на обработку накопившихся сообщений (вызывается внешним cron-сервисом)"""
+    try:
+        logger.info("Запуск бота через /cron/run-bot")
+        # Запускаем бота в фоне для обработки накопившихся сообщений
+        import threading
+        from run_bot import main as run_bot_main
+        
+        def run_bot_thread():
+            try:
+                asyncio.run(run_bot_main())
+            except Exception as e:
+                logger.error(f"Ошибка в потоке бота: {e}")
+        
+        thread = threading.Thread(target=run_bot_thread)
+        thread.daemon = True
+        thread.start()
+        
+        return {"status": "started", "message": "Бот запущен для обработки сообщений"}, 200
+    except Exception as e:
+        logger.error(f"Ошибка при запуске бота: {e}")
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route('/cron/run-all')
+def cron_run_all():
+    """Endpoint для запуска всех задач (вызывается внешним cron-сервисом)"""
+    try:
+        logger.info("Запуск всех задач через /cron/run-all")
+        
+        # Проверка событий
+        try:
+            asyncio.run(check_and_notify_events())
+        except Exception as e:
+            logger.error(f"Ошибка при проверке событий: {e}")
+        
+        # Проверка рассылок
+        try:
+            process_pending_broadcasts()
+        except Exception as e:
+            logger.error(f"Ошибка при проверке рассылок: {e}")
+        
+        return {
+            "status": "success", 
+            "message": "Все задачи выполнены",
+            "tasks": ["check-events", "check-broadcasts"]
+        }, 200
+    except Exception as e:
+        logger.error(f"Ошибка при выполнении задач: {e}")
+        return {"status": "error", "message": str(e)}, 500
+
+# Примечание: 
+# - На платном тарифе PythonAnywhere: бот запускается через Always-on task используя run_bot.py
+# - На бесплатном тарифе: используйте внешние cron-сервисы для вызова /cron/* endpoints
 
 if __name__ == '__main__':
     # Локальный запуск Flask приложения

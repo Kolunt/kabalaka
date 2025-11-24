@@ -146,20 +146,54 @@ python3.10 create_admin.py
 
 ### Варианты работы бота на бесплатном тарифе
 
-#### Вариант 1: Использование Scheduled Tasks (рекомендуется для начала)
+#### Вариант 1: Использование внешних cron-сервисов (рекомендуется)
 
-Бот будет периодически запускаться для обработки накопившихся сообщений:
+Используйте бесплатные внешние сервисы для периодического вызова endpoints:
+
+1. **Настройте внешний cron-сервис** (например, [cron-job.org](https://cron-job.org) или [EasyCron](https://www.easycron.com)):
+   
+   **Для пробуждения Web app и проверки событий:**
+   - URL: `https://yourusername.pythonanywhere.com/cron/run-all`
+   - Интервал: каждые 5-10 минут
+   - Метод: GET
+   
+   **Для запуска бота на обработку сообщений:**
+   - URL: `https://yourusername.pythonanywhere.com/cron/run-bot`
+   - Интервал: каждые 5-10 минут
+   - Метод: GET
+   
+   **Для пробуждения Web app (чтобы он не засыпал):**
+   - URL: `https://yourusername.pythonanywhere.com/cron/wake`
+   - Интервал: каждые 5 минут
+   - Метод: GET
+
+2. **Доступные endpoints:**
+   - `/cron/wake` - пробуждение Web app
+   - `/cron/check-events` - проверка событий календарей
+   - `/cron/check-broadcasts` - проверка отложенных рассылок
+   - `/cron/run-bot` - запуск бота для обработки сообщений
+   - `/cron/run-all` - запуск всех задач (события + рассылки)
+
+3. **Преимущества:**
+   - ✅ Работает на бесплатном тарифе
+   - ✅ Можно настроить любой интервал (не только раз в сутки)
+   - ✅ Web app будет "пробуждаться" и оставаться активным
+   - ✅ Все задачи выполняются автоматически
+
+#### Вариант 2: Использование Scheduled Task (раз в сутки)
+
+Если нет возможности использовать внешние cron-сервисы:
 
 1. Перейдите в раздел **Tasks**
 2. Создайте **Scheduled task** для бота:
    - **Command**: 
      ```bash
-     cd /home/yourusername/alarm-bot && python3.10 run_bot.py
+     cd /home/yourusername/alarm-bot && python3.10 -c "import requests; requests.get('https://yourusername.pythonanywhere.com/cron/run-all')"
      ```
-   - **Hour**: `*` (каждый час)
-   - **Minute**: `*/5` (каждые 5 минут) или `*/10` (каждые 10 минут)
-   - **Description**: Telegram Bot Polling (periodic)
-   - ⚠️ **Примечание**: Бот будет запускаться периодически, обработает накопившиеся сообщения и завершится. Это не идеально, но работает на бесплатном тарифе.
+   - **Hour**: выберите удобное время (например, `9`)
+   - **Minute**: `0`
+   - **Description**: Daily bot tasks
+   - ⚠️ **Примечание**: Задачи будут выполняться только раз в сутки. Для более частой проверки используйте Вариант 1.
 
 #### Вариант 2: Использование Webhook (для продвинутых пользователей)
 
@@ -171,33 +205,63 @@ python3.10 create_admin.py
 - Перейти на платный тариф PythonAnywhere (есть Always-on tasks)
 - Или использовать другой хостинг (VPS, Heroku, Railway и т.д.)
 
-## Шаг 8: Настройка Scheduled Tasks
+## Шаг 8: Настройка планировщика
 
-### Задача 1: Проверка событий календарей
+### Для бесплатного тарифа: Использование внешних cron-сервисов
+
+⚠️ **Важно**: На бесплатном тарифе Scheduled tasks можно установить только **раз в сутки**. Для более частой работы используйте внешние cron-сервисы.
+
+#### Настройка через cron-job.org (рекомендуется)
+
+1. Зарегистрируйтесь на [cron-job.org](https://cron-job.org) (бесплатно)
+2. Создайте новую задачу:
+   - **Title**: Kabalaka - Check events and broadcasts
+   - **Address**: `https://yourusername.pythonanywhere.com/cron/run-all`
+   - **Schedule**: выберите интервал (например, каждые 5 минут)
+   - **Request method**: GET
+   - Нажмите **Create cronjob**
+
+3. (Опционально) Создайте задачу для пробуждения Web app:
+   - **Title**: Kabalaka - Wake up
+   - **Address**: `https://yourusername.pythonanywhere.com/cron/wake`
+   - **Schedule**: каждые 5 минут
+   - **Request method**: GET
+
+4. (Опционально) Создайте задачу для запуска бота:
+   - **Title**: Kabalaka - Run bot
+   - **Address**: `https://yourusername.pythonanywhere.com/cron/run-bot`
+   - **Schedule**: каждые 10 минут
+   - **Request method**: GET
+
+#### Альтернативные cron-сервисы
+
+- [EasyCron](https://www.easycron.com) - бесплатный тариф: до 2 задач
+- [UptimeRobot](https://uptimerobot.com) - бесплатный тариф: мониторинг + HTTP requests
+- [Healthchecks.io](https://healthchecks.io) - бесплатный тариф для мониторинга
+
+### Для платного тарифа: Использование Scheduled Tasks
+
+Если у вас платный тариф PythonAnywhere, можете использовать Scheduled tasks:
 
 1. Перейдите в раздел **Tasks**
-2. Создайте **Scheduled task**:
+2. Создайте **Scheduled task** для проверки событий:
    - **Command**: 
      ```bash
-     cd /home/yourusername/alarm-bot && python3.10 -c "import asyncio; from scheduler import check_and_notify_events; asyncio.run(check_and_notify_events())"
+     cd /home/yourusername/alarm-bot && python3.10 -c "import requests; requests.get('https://yourusername.pythonanywhere.com/cron/check-events')"
      ```
    - **Hour**: `*` (каждый час)
-   - **Minute**: `*/5` (каждые 5 минут) или другое значение
+   - **Minute**: `*/5` (каждые 5 минут)
    - **Description**: Check calendar events
 
-⚠️ **Примечание**: Интервал можно настроить через админ-панель в разделе "Настройки" → "Планировщик"
+3. Создайте **Scheduled task** для проверки рассылок:
+   - **Command**: 
+     ```bash
+     cd /home/yourusername/alarm-bot && python3.10 -c "import requests; requests.get('https://yourusername.pythonanywhere.com/cron/check-broadcasts')"
+     ```
+   - **Hour**: `*`
+   - **Minute**: `*/1` (каждую минуту)
 
-### Задача 2: Проверка отложенных рассылок (опционально)
-
-Если вы используете отложенные рассылки, добавьте задачу:
-- **Command**: 
-  ```bash
-  cd /home/yourusername/alarm-bot && python3.10 -c "from app import process_pending_broadcasts; process_pending_broadcasts()"
-  ```
-- **Hour**: `*`
-- **Minute**: `*/1` (каждую минуту)
-
-⚠️ **Примечание**: На PythonAnywhere планировщик в `app.py` также проверяет рассылки автоматически, но Scheduled task более надёжен.
+⚠️ **Примечание**: Интервал проверки событий можно настроить через админ-панель в разделе "Настройки" → "Планировщик"
 
 ## Шаг 9: Настройка OAuth Redirect URIs
 
@@ -299,11 +363,13 @@ python3.10 create_admin.py
 
 ### Рекомендации для бесплатного тарифа
 
-- ✅ Используйте **Scheduled tasks** для периодического запуска бота (каждые 5-10 минут)
-- ✅ Настройте **Scheduled tasks** для проверки событий календарей
+- ✅ **Используйте внешние cron-сервисы** для периодического вызова endpoints (обход ограничения "раз в сутки")
+- ✅ Настройте `/cron/run-all` на вызов каждые 5-10 минут через cron-job.org
+- ✅ Настройте `/cron/wake` на вызов каждые 5 минут для поддержания Web app активным
+- ✅ Используйте встроенный **BackgroundScheduler** в `app.py` (работает пока Web app активен)
 - ✅ Регулярно проверяйте логи в разделе **Web** → **Error log**
 - ✅ Настройте все параметры через админ-панель (удобнее, чем редактировать `.env`)
-- ⚠️ Для полноценной работы рассмотрите переход на платный тариф или другой хостинг
+- ⚠️ Для полноценной работы с постоянным polling рассмотрите переход на платный тариф или другой хостинг
 
 ### Рекомендации для платного тарифа
 
@@ -340,11 +406,14 @@ python3.10 create_admin.py
 ### Бот не отвечает
 
 **На бесплатном тарифе:**
-1. Проверьте, что **Scheduled task** для бота настроен и выполняется
-2. Убедитесь, что Web app активен (Scheduled tasks работают только при активном Web app)
-3. Проверьте логи в разделе **Tasks** → нажмите на задачу → **View output**
-4. Убедитесь, что токен бота правильный (проверьте в админ-панели)
-5. Проверьте статус бота в админ-панели: **Настройки** → **Управление ботом**
+1. Проверьте, что внешние cron-задачи настроены и работают (cron-job.org и т.д.)
+2. Проверьте, что endpoints отвечают:
+   - `https://yourusername.pythonanywhere.com/cron/wake` - должен вернуть `{"status": "awake"}`
+   - `https://yourusername.pythonanywhere.com/cron/run-all` - должен вернуть `{"status": "success"}`
+3. Убедитесь, что Web app активен (проверьте в разделе **Web**)
+4. Проверьте логи в разделе **Web** → **Error log**
+5. Убедитесь, что токен бота правильный (проверьте в админ-панели)
+6. Проверьте статус бота в админ-панели: **Настройки** → **Управление ботом**
 
 **На платном тарифе:**
 1. Проверьте, что **Always-on task** запущен (зелёный индикатор)
@@ -365,10 +434,12 @@ python3.10 create_admin.py
 
 ### События не проверяются
 
-1. Убедитесь, что **Scheduled task** настроен правильно
-2. Проверьте, что Web app активен
-3. Проверьте настройки планировщика в админ-панели: **Настройки** → **Планировщик**
-4. Проверьте логи в разделе **Web** → **Error log**
+1. Проверьте, что внешние cron-задачи настроены (cron-job.org и т.д.)
+2. Проверьте, что `/cron/run-all` или `/cron/check-events` вызываются регулярно
+3. Убедитесь, что Web app активен
+4. Проверьте настройки планировщика в админ-панели: **Настройки** → **Планировщик**
+5. Проверьте логи в разделе **Web** → **Error log**
+6. Проверьте, что встроенный BackgroundScheduler работает (он активен пока Web app не спит)
 
 ### Рассылки не отправляются
 
