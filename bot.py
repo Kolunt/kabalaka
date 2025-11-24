@@ -168,17 +168,50 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(t("yandex_already_connected", user_id), show_alert=True)
             return
         
-        # Для Yandex также передаем user_id (если поддерживается)
-        auth_url = yandex_cal.get_authorization_url(user_id=user_id)
-        user_states[user_id] = 'waiting_yandex_code'
-        
-        keyboard = [
-            [InlineKeyboardButton(t("authorize", user_id), url=auth_url)],
-            [InlineKeyboardButton(t("back", user_id), callback_data="menu_calendars")]
-        ]
-        
-        text = t("connect_yandex_title", user_id)
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        try:
+            # Пересоздаем экземпляр YandexCalendar для получения актуальных настроек
+            from calendar_yandex import YandexCalendar
+            yandex_cal_instance = YandexCalendar()
+            
+            # Проверяем, что настройки заполнены
+            if not yandex_cal_instance.client_id:
+                await query.answer(
+                    t("error_yandex_not_configured", user_id) if t("error_yandex_not_configured", user_id) != "error_yandex_not_configured" 
+                    else "Yandex не настроен. Пожалуйста, заполните Yandex Client ID и Client Secret в админ-панели: Настройки → Основные настройки",
+                    show_alert=True
+                )
+                await query.edit_message_text(
+                    t("error_yandex_not_configured", user_id) if t("error_yandex_not_configured", user_id) != "error_yandex_not_configured"
+                    else "❌ Yandex не настроен.\n\nПожалуйста, заполните Yandex Client ID и Client Secret в админ-панели:\nНастройки → Основные настройки",
+                    reply_markup=get_calendars_menu(user_id)
+                )
+                return
+            
+            # Для Yandex также передаем user_id (если поддерживается)
+            auth_url = yandex_cal_instance.get_authorization_url(user_id=user_id)
+            user_states[user_id] = 'waiting_yandex_code'
+            
+            keyboard = [
+                [InlineKeyboardButton(t("authorize", user_id), url=auth_url)],
+                [InlineKeyboardButton(t("back", user_id), callback_data="menu_calendars")]
+            ]
+            
+            text = t("connect_yandex_title", user_id)
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        except ValueError as e:
+            logger.error(f"Ошибка при создании URL авторизации Yandex: {e}")
+            await query.answer(str(e), show_alert=True)
+            await query.edit_message_text(
+                f"❌ Ошибка настройки Yandex:\n\n{str(e)}\n\nПожалуйста, заполните настройки в админ-панели.",
+                reply_markup=get_calendars_menu(user_id)
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при подключении Yandex: {e}")
+            await query.answer(t("error_connection", user_id), show_alert=True)
+            await query.edit_message_text(
+                t("error_connection", user_id),
+                reply_markup=get_calendars_menu(user_id)
+            )
     
     # Отключение календарей
     elif data == "disconnect_google":

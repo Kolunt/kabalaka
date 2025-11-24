@@ -22,6 +22,13 @@ class YandexCalendar:
         Args:
             user_id: ID пользователя Telegram для связи через state параметр
         """
+        if not self.client_id:
+            raise ValueError("Yandex Client ID не установлен. Пожалуйста, настройте его в админ-панели: Настройки → Основные настройки")
+        
+        if not self.redirect_uri:
+            raise ValueError("Yandex Redirect URI не установлен. Пожалуйста, настройте его в админ-панели: Настройки → Основные настройки")
+        
+        import urllib.parse
         params = {
             'response_type': 'code',
             'client_id': self.client_id,
@@ -30,7 +37,10 @@ class YandexCalendar:
         # Добавляем state с user_id, если передан
         if user_id:
             params['state'] = str(user_id)
-        return f"{self.AUTH_URL}?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
+        
+        # Правильно кодируем параметры URL
+        query_string = urllib.parse.urlencode(params)
+        return f"{self.AUTH_URL}?{query_string}"
     
     def get_token_from_code(self, code: str) -> Optional[Dict]:
         """Получение токена из кода авторизации"""
