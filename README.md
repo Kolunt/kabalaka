@@ -1,6 +1,10 @@
 # Calendar Alarm Bot
 
+[![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/Kolunt/tg-alarm-bot)
+
 Telegram-бот для получения уведомлений о событиях из различных календарей (Яндекс Календарь и Google Календарь).
+
+**Репозиторий:** https://github.com/Kolunt/tg-alarm-bot
 
 ## Возможности
 
@@ -15,8 +19,8 @@ Telegram-бот для получения уведомлений о событи
 ### 1. Клонирование репозитория
 
 ```bash
-git clone <repository-url>
-cd alarm-bot
+git clone https://github.com/Kolunt/tg-alarm-bot.git
+cd tg-alarm-bot
 ```
 
 ### 2. Установка зависимостей
@@ -139,6 +143,27 @@ alarm-bot/
 ├── pythonanywhere_setup.md      # Инструкция по развертыванию на PythonAnywhere
 └── README.md                    # Документация
 ```
+
+## Версионирование
+
+Проект использует семантическое версионирование (Semantic Versioning) в формате `MAJOR.MINOR.PATCH`.
+
+- Текущая версия: **0.0.1**
+- Файл версии: `VERSION`
+- Версия также доступна в `__init__.py` как `__version__`
+
+### Обновление версии
+
+Для автоматического обновления версии (увеличение patch на 1) используйте:
+
+```bash
+python bump_version.py
+```
+
+Скрипт автоматически:
+- Увеличит версию на 0.0.1 (например, 0.0.1 → 0.0.2)
+- Обновит файл `VERSION`
+- Обновит `__version__` в `__init__.py`
 
 ## Лицензия
 
