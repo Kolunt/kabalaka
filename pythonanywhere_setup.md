@@ -205,6 +205,7 @@ python3.10 create_admin.py
    
    **Для запуска бота на обработку сообщений:**
    - URL: `https://yourusername.pythonanywhere.com/cron/run-bot`
+   - **Важно**: Для быстрой работы бота рекомендуется вызывать этот endpoint каждые 30-60 секунд
    - Интервал: каждые 5-10 минут
    - Метод: GET
    
@@ -305,7 +306,8 @@ python3.10 create_admin.py
      cd /home/yourusername/alarm-bot && python3.10 -c "import requests; requests.get('https://yourusername.pythonanywhere.com/cron/check-broadcasts')"
      ```
    - **Hour**: `*`
-   - **Minute**: `*/1` (каждую минуту)
+   - **Minute**: `*/1` (каждую минуту) или `*` (каждые 30 секунд, если сервис поддерживает)
+   - **Важно**: Для быстрой работы бота рекомендуется вызывать `/cron/run-bot` каждые 30-60 секунд
 
 ⚠️ **Примечание**: Интервал проверки событий можно настроить через админ-панель в разделе "Настройки" → "Планировщик"
 
