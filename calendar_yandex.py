@@ -22,17 +22,25 @@ class YandexCalendar:
         Args:
             user_id: ID пользователя Telegram для связи через state параметр
         """
-        if not self.client_id:
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Логируем значения для отладки
+        logger.info(f"Yandex OAuth: client_id={self.client_id[:10] + '...' if self.client_id and len(self.client_id) > 10 else self.client_id}, redirect_uri={self.redirect_uri}")
+        
+        if not self.client_id or self.client_id.strip() == '':
+            logger.error("Yandex Client ID пустой или не установлен")
             raise ValueError("Yandex Client ID не установлен. Пожалуйста, настройте его в админ-панели: Настройки → Основные настройки")
         
-        if not self.redirect_uri:
+        if not self.redirect_uri or self.redirect_uri.strip() == '':
+            logger.error("Yandex Redirect URI пустой или не установлен")
             raise ValueError("Yandex Redirect URI не установлен. Пожалуйста, настройте его в админ-панели: Настройки → Основные настройки")
         
         import urllib.parse
         params = {
             'response_type': 'code',
-            'client_id': self.client_id,
-            'redirect_uri': self.redirect_uri
+            'client_id': self.client_id.strip(),  # Убираем пробелы
+            'redirect_uri': self.redirect_uri.strip()  # Убираем пробелы
         }
         # Добавляем state с user_id, если передан
         if user_id:
@@ -40,7 +48,11 @@ class YandexCalendar:
         
         # Правильно кодируем параметры URL
         query_string = urllib.parse.urlencode(params)
-        return f"{self.AUTH_URL}?{query_string}"
+        auth_url = f"{self.AUTH_URL}?{query_string}"
+        
+        logger.info(f"Yandex OAuth URL создан: {self.AUTH_URL}?client_id={params['client_id'][:10]}...&redirect_uri={params['redirect_uri'][:30]}...")
+        
+        return auth_url
     
     def get_token_from_code(self, code: str) -> Optional[Dict]:
         """Получение токена из кода авторизации"""
