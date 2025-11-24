@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 async def main():
     """Главная функция"""
-    logger.info("Запуск Calendar Alarm Bot...")
+    logger.info("Запуск Kabalaka Bot...")
     
     # Настройка бота
     application = setup_bot()

@@ -8,7 +8,7 @@
 2. Войдите в свой аккаунт Google
 3. Нажмите на выпадающий список проектов вверху
 4. Нажмите "Новый проект"
-5. Введите название проекта (например, "Calendar Alarm Bot")
+5. Введите название проекта (например, "Kabalaka")
 6. Нажмите "Создать"
 
 ### Шаг 2: Включение Google Calendar API
@@ -25,7 +25,7 @@
 3. Если появится запрос на настройку OAuth consent screen:
    - Выберите "External" (для тестирования)
    - Заполните обязательные поля:
-     - App name: Calendar Alarm Bot
+     - App name: Kabalaka
      - User support email: ваш email
      - Developer contact information: ваш email
    - Нажмите "Save and Continue"
@@ -37,7 +37,7 @@
 
 4. Теперь создайте OAuth client ID:
    - Application type: "Web application"
-   - Name: Calendar Alarm Bot
+   - Name: Kabalaka
    - Authorized redirect URIs: 
      - Для локальной разработки: `http://localhost:5000/callback/google`
      - Для PythonAnywhere: `https://yourusername.pythonanywhere.com/callback/google`

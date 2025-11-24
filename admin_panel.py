@@ -342,7 +342,7 @@ BASE_TEMPLATE = """
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>Админ панель - Calendar Alarm Bot</h1>
+            <h1>Админ панель - Kabalaka</h1>
             <a href="{{ url_for('admin.logout') }}" class="logout">Выйти</a>
         </div>
     </div>

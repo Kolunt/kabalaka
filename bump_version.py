@@ -83,7 +83,7 @@ def write_version(version):
     except FileNotFoundError:
         # Создаем __init__.py если его нет
         with open('__init__.py', 'w', encoding='utf-8') as f:
-            f.write(f'"""Calendar Alarm Bot"""\n__version__ = "{version}"\n')
+            f.write(f'"""Kabalaka - Telegram bot for calendar notifications"""\n__version__ = "{version}"\n')
 
 def bump_version(version):
     """Увеличивает версию на 0.0.1 (patch)"""

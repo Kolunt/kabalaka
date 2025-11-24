@@ -1,10 +1,11 @@
-# Calendar Alarm Bot
+# Kabalaka
 
-[![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/Kolunt/tg-alarm-bot)
-[![Changelog](https://img.shields.io/badge/changelog-0.0.1-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.0.3-blue.svg)](https://github.com/Kolunt/tg-alarm-bot)
+[![Changelog](https://img.shields.io/badge/changelog-0.0.3-green.svg)](CHANGELOG.md)
 
 Telegram-бот для получения уведомлений о событиях из различных календарей (Яндекс Календарь и Google Календарь).
 
+**Бот в Telegram:** [@KabalakaBot](https://t.me/KabalakaBot)  
 **Репозиторий:** https://github.com/Kolunt/tg-alarm-bot
 
 ## Возможности
@@ -152,7 +153,7 @@ alarm-bot/
 
 Проект использует семантическое версионирование (Semantic Versioning) в формате `MAJOR.MINOR.PATCH`.
 
-- Текущая версия: **0.0.1**
+- Текущая версия: **0.0.3**
 - Файл версии: `VERSION`
 - Версия также доступна в `__init__.py` как `__version__`
 - История изменений: `CHANGELOG.md`
