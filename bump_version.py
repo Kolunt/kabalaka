@@ -54,11 +54,11 @@ def update_changelog(old_version, new_version):
         with open('CHANGELOG.md', 'w', encoding='utf-8') as f:
             f.write(content)
         
-        print(f"✓ Добавлена секция для версии {new_version} в CHANGELOG.md")
-        print(f"  ⚠ Не забудьте заполнить список изменений!")
+        print(f"[OK] Добавлена секция для версии {new_version} в CHANGELOG.md")
+        print(f"  [WARNING] Не забудьте заполнить список изменений!")
         
     except FileNotFoundError:
-        print("⚠ CHANGELOG.md не найден, пропускаем обновление")
+        print("[WARNING] CHANGELOG.md не найден, пропускаем обновление")
 
 def write_version(version):
     """Записывает версию в VERSION файл и __init__.py"""
@@ -105,7 +105,7 @@ def main():
     
     write_version(new_version)
     update_changelog(current_version, new_version)
-    print(f"✓ Версия обновлена до {new_version}")
+    print(f"[OK] Версия обновлена до {new_version}")
     
     return new_version
 
