@@ -102,6 +102,9 @@ async def get_events_for_calendar(connection: Dict, calendar_type: str) -> List[
         if calendar_type == 'google':
             from google.oauth2.credentials import Credentials
             from google.auth.transport.requests import Request
+            from googleapiclient.errors import HttpError
+            
+            logger.info(f"Google Calendar: получение событий для пользователя {connection['user_id']}")
             
             # Восстанавливаем credentials
             token_data = {
@@ -113,26 +116,70 @@ async def get_events_for_calendar(connection: Dict, calendar_type: str) -> List[
                 'scopes': Config.GOOGLE_SCOPES
             }
             
-            creds = Credentials.from_authorized_user_info(token_data)
+            # Проверяем наличие обязательных данных
+            if not token_data['client_id']:
+                logger.error("Google Calendar: Client ID не установлен")
+                return []
+            
+            if not token_data['client_secret']:
+                logger.error("Google Calendar: Client Secret не установлен")
+                return []
+            
+            try:
+                creds = Credentials.from_authorized_user_info(token_data)
+            except Exception as e:
+                logger.error(f"Google Calendar: ошибка при создании credentials: {e}")
+                return []
             
             # Обновляем токен, если истек
             if creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-                # Сохраняем обновленный токен
-                db.save_calendar_connection(
-                    user_id=connection['user_id'],
-                    calendar_type='google',
-                    access_token=creds.token,
-                    refresh_token=creds.refresh_token,
-                    token_expires_at=creds.expiry,
-                    calendar_id=connection.get('calendar_id'),
-                    calendar_name=connection.get('calendar_name')
-                )
+                logger.info("Google Calendar: токен истек, обновляем...")
+                try:
+                    creds.refresh(Request())
+                    logger.info("Google Calendar: токен успешно обновлен")
+                    # Сохраняем обновленный токен
+                    db.save_calendar_connection(
+                        user_id=connection['user_id'],
+                        calendar_type='google',
+                        access_token=creds.token,
+                        refresh_token=creds.refresh_token,
+                        token_expires_at=creds.expiry,
+                        calendar_id=connection.get('calendar_id'),
+                        calendar_name=connection.get('calendar_name')
+                    )
+                except Exception as e:
+                    logger.error(f"Google Calendar: ошибка при обновлении токена: {e}")
+                    logger.warning("Google Calendar: возможно, нужно переподключить календарь")
+                    return []
+            elif creds.expired and not creds.refresh_token:
+                logger.error("Google Calendar: токен истек и нет refresh_token. Нужно переподключить календарь.")
+                return []
             
             time_min = datetime.utcnow()
             time_max = time_min + timedelta(days=1)
             
-            return google_cal.get_upcoming_events(creds, time_min, time_max, max_results=50)
+            try:
+                events = google_cal.get_upcoming_events(creds, time_min, time_max, max_results=50)
+                logger.info(f"Google Calendar: успешно получено {len(events)} событий")
+                return events
+            except HttpError as e:
+                error_details = e.error_details if hasattr(e, 'error_details') else str(e)
+                logger.error(f"Google Calendar: HttpError {e.resp.status if hasattr(e, 'resp') else 'unknown'}: {error_details}")
+                
+                # Специальная обработка ошибки 403
+                if hasattr(e, 'resp') and e.resp.status == 403:
+                    reason = error_details[0].get('reason', '') if isinstance(error_details, list) and error_details else ''
+                    if 'accessNotConfigured' in str(error_details):
+                        logger.error("Google Calendar: API не включен или OAuth не настроен правильно")
+                        logger.error("Решение: 1) Включите Google Calendar API в Google Cloud Console")
+                        logger.error("         2) Проверьте OAuth Consent Screen")
+                        logger.error("         3) Переподключите календарь в боте")
+                    else:
+                        logger.error(f"Google Calendar: ошибка доступа (403). Причина: {reason}")
+                return []
+            except Exception as e:
+                logger.error(f"Google Calendar: неожиданная ошибка при получении событий: {e}", exc_info=True)
+                return []
         
         elif calendar_type == 'yandex':
             access_token = connection['access_token']
