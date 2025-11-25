@@ -229,6 +229,7 @@ async def send_notification(bot: Bot, user_id: int, event: Dict, calendar_type: 
     """Отправка уведомления о событии"""
     try:
         from i18n import t
+        from telegram.error import TelegramError, BadRequest, Forbidden
         
         event_start = event['start']
         start_time_str = event_start.strftime('%d.%m.%Y %H:%M')
@@ -248,6 +249,25 @@ async def send_notification(bot: Bot, user_id: int, event: Dict, calendar_type: 
         await bot.send_message(chat_id=user_id, text=message)
         logger.info(f"Уведомление отправлено пользователю {user_id} о событии {event['id']}")
     
+    except BadRequest as e:
+        error_message = str(e).lower()
+        if 'chat not found' in error_message or 'chat_id is empty' in error_message:
+            logger.warning(f"Пользователь {user_id} не зарегистрирован в боте (никогда не отправлял /start). Пропуск уведомления.")
+        else:
+            logger.error(f"Ошибка BadRequest при отправке уведомления пользователю {user_id}: {e}")
+    
+    except Forbidden as e:
+        error_message = str(e).lower()
+        if 'bot was blocked by the user' in error_message:
+            logger.warning(f"Пользователь {user_id} заблокировал бота. Пропуск уведомления.")
+        elif 'user is deactivated' in error_message:
+            logger.warning(f"Пользователь {user_id} деактивировал аккаунт. Пропуск уведомления.")
+        else:
+            logger.error(f"Ошибка Forbidden при отправке уведомления пользователю {user_id}: {e}")
+    
+    except TelegramError as e:
+        logger.error(f"Ошибка Telegram API при отправке уведомления пользователю {user_id}: {e}")
+    
     except Exception as e:
-        logger.error(f"Ошибка при отправке уведомления: {e}")
+        logger.error(f"Неожиданная ошибка при отправке уведомления пользователю {user_id}: {e}", exc_info=True)
 
