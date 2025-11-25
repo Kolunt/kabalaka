@@ -178,3 +178,6 @@
 - [Документация Yandex OAuth](https://yandex.ru/dev/id/doc/ru/) - официальная документация
 - [CalDAV протокол](https://ru.wikipedia.org/wiki/CalDAV) - информация о протоколе календаря
 
+
+
+

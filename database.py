@@ -141,6 +141,35 @@ class Database:
                     UNIQUE(broadcast_id, user_id)
                 )
             ''')
+            
+            # Таблица кэшированных событий из календарей
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS cached_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    calendar_type TEXT NOT NULL,
+                    event_id TEXT NOT NULL,
+                    summary TEXT,
+                    description TEXT,
+                    location TEXT,
+                    start_time TIMESTAMP NOT NULL,
+                    end_time TIMESTAMP NOT NULL,
+                    html_link TEXT,
+                    last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(user_id),
+                    UNIQUE(user_id, calendar_type, event_id, start_time)
+                )
+            ''')
+            
+            # Индексы для быстрого поиска
+            try:
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_cached_events_user_calendar ON cached_events(user_id, calendar_type)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_cached_events_start_time ON cached_events(start_time)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_cached_events_user_start ON cached_events(user_id, start_time)')
+            except sqlite3.OperationalError:
+                pass  # Индексы уже существуют
     
     def add_user(self, user_id: int, username: Optional[str] = None, first_name: Optional[str] = None):
         """Добавление пользователя"""
@@ -540,6 +569,136 @@ class Database:
                 result = dict(row)
                 if result.get('languages'):
                     result['languages'] = json.loads(result['languages'])
+                results.append(result)
+            return results
+    
+    # Методы для работы с кэшированными событиями
+    def save_or_update_event(self, user_id: int, calendar_type: str, event_id: str,
+                            summary: Optional[str], description: Optional[str],
+                            location: Optional[str], start_time: datetime,
+                            end_time: datetime, html_link: Optional[str] = None):
+        """Сохранение или обновление события в кэше"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO cached_events 
+                (user_id, calendar_type, event_id, summary, description, location,
+                 start_time, end_time, html_link, last_synced_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id, calendar_type, event_id, start_time) DO UPDATE SET
+                    summary = excluded.summary,
+                    description = excluded.description,
+                    location = excluded.location,
+                    end_time = excluded.end_time,
+                    html_link = excluded.html_link,
+                    last_synced_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, calendar_type, event_id, summary, description, location,
+                  start_time, end_time, html_link))
+    
+    def get_cached_events(self, user_id: int, calendar_type: Optional[str] = None,
+                         time_min: Optional[datetime] = None,
+                         time_max: Optional[datetime] = None) -> List[Dict]:
+        """Получение кэшированных событий для пользователя"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            query = '''
+                SELECT * FROM cached_events
+                WHERE user_id = ?
+            '''
+            params = [user_id]
+            
+            if calendar_type:
+                query += ' AND calendar_type = ?'
+                params.append(calendar_type)
+            
+            if time_min:
+                query += ' AND start_time >= ?'
+                params.append(time_min)
+            
+            if time_max:
+                query += ' AND start_time <= ?'
+                params.append(time_max)
+            
+            query += ' ORDER BY start_time ASC'
+            
+            cursor.execute(query, params)
+            results = []
+            for row in cursor.fetchall():
+                result = dict(row)
+                # Преобразуем строки времени обратно в datetime
+                if isinstance(result.get('start_time'), str):
+                    result['start'] = datetime.fromisoformat(result['start_time'].replace('Z', '+00:00'))
+                else:
+                    result['start'] = result['start_time']
+                if isinstance(result.get('end_time'), str):
+                    result['end'] = datetime.fromisoformat(result['end_time'].replace('Z', '+00:00'))
+                else:
+                    result['end'] = result['end_time']
+                results.append(result)
+            return results
+    
+    def delete_old_events(self, user_id: int, calendar_type: str, before_date: datetime):
+        """Удаление старых событий (которые уже прошли и не нужны)"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                DELETE FROM cached_events
+                WHERE user_id = ? AND calendar_type = ? AND end_time < ?
+            ''', (user_id, calendar_type, before_date))
+            return cursor.rowcount
+    
+    def clear_user_events(self, user_id: int, calendar_type: str):
+        """Очистка всех событий пользователя для конкретного календаря"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                DELETE FROM cached_events
+                WHERE user_id = ? AND calendar_type = ?
+            ''', (user_id, calendar_type))
+            return cursor.rowcount
+    
+    def get_events_for_notification(self, user_id: int, time_min: datetime, time_max: datetime) -> List[Dict]:
+        """Получение событий для отправки уведомлений в заданном временном диапазоне"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Преобразуем datetime в строку для SQLite
+            time_min_str = time_min.isoformat() if isinstance(time_min, datetime) else str(time_min)
+            time_max_str = time_max.isoformat() if isinstance(time_max, datetime) else str(time_max)
+            
+            cursor.execute('''
+                SELECT ce.*, cc.calendar_name
+                FROM cached_events ce
+                JOIN calendar_connections cc ON ce.user_id = cc.user_id 
+                    AND ce.calendar_type = cc.calendar_type
+                WHERE ce.user_id = ?
+                    AND ce.start_time >= ? 
+                    AND ce.start_time <= ?
+                ORDER BY ce.start_time ASC
+            ''', (user_id, time_min_str, time_max_str))
+            results = []
+            for row in cursor.fetchall():
+                result = dict(row)
+                # Преобразуем строки времени обратно в datetime
+                start_time = result.get('start_time')
+                if isinstance(start_time, str):
+                    try:
+                        result['start'] = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    except ValueError:
+                        # Пробуем другой формат
+                        result['start'] = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S')
+                else:
+                    result['start'] = start_time
+                
+                end_time = result.get('end_time')
+                if isinstance(end_time, str):
+                    try:
+                        result['end'] = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                    except ValueError:
+                        # Пробуем другой формат
+                        result['end'] = datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S')
+                else:
+                    result['end'] = end_time
                 results.append(result)
             return results
 

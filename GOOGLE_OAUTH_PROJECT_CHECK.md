@@ -65,3 +65,6 @@
 - [ ] Test users: `kolunt@gmail.com`
 - [ ] Flask сервер перезапущен
 
+
+
+

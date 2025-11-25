@@ -161,3 +161,5 @@ logging.getLogger('calendar_yandex').setLevel(logging.DEBUG)
 - Детали запросов и ответов
 - Процесс парсинга событий
 
+
+

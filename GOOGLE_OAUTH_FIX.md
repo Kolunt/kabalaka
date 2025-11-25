@@ -82,3 +82,6 @@ GOOGLE_REDIRECT_URI=http://localhost:5000/callback/google
 2. Попробуйте снова подключить Google Calendar
 3. Ошибка должна исчезнуть
 
+
+
+

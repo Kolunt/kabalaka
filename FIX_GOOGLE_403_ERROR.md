@@ -72,3 +72,5 @@ Encountered 403 Forbidden with reason "accessNotConfigured"
 3. Попробуйте создать новый OAuth Client ID в том же проекте
 4. Убедитесь, что прошло достаточно времени после включения API (иногда требуется несколько минут)
 
+
+

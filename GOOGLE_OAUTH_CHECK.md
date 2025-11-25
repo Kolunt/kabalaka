@@ -38,3 +38,6 @@ Redirect URI изменен на: `http://localhost:5000/callback/google`
 3. Убедитесь, что Google Calendar API включен в проекте
 4. Перезапустите Flask сервер после всех изменений
 
+
+
+

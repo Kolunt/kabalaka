@@ -104,3 +104,6 @@ python -c "from config import Config; print('Client ID:', Config.GOOGLE_CLIENT_I
 2. Используйте новые Client ID и Client Secret
 3. Убедитесь, что redirect URI указан правильно в обоих местах
 
+
+
+

@@ -6,7 +6,7 @@ import asyncio
 import logging
 from telegram import Bot
 from bot import setup_bot
-from scheduler import check_and_notify_events
+from scheduler import check_and_notify_events, sync_events_from_calendars
 from database import Database
 from calendar_google import GoogleCalendar
 from calendar_yandex import YandexCalendar
@@ -398,9 +398,23 @@ def cron_wake():
     logger.info("Web app пробужден через /cron/wake")
     return {"status": "awake", "message": "Web app активен"}, 200
 
+@app.route('/cron/sync-events')
+def cron_sync_events():
+    """Endpoint для синхронизации событий из календарей в БД (вызывается внешним cron-сервисом)"""
+    try:
+        logger.info("=" * 50)
+        logger.info("Запуск синхронизации событий через /cron/sync-events")
+        logger.info("=" * 50)
+        asyncio.run(sync_events_from_calendars())
+        logger.info("Синхронизация событий завершена успешно")
+        return {"status": "success", "message": "Синхронизация событий выполнена"}, 200
+    except Exception as e:
+        logger.error(f"Ошибка при синхронизации событий: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}, 500
+
 @app.route('/cron/check-events')
 def cron_check_events():
-    """Endpoint для проверки событий (вызывается внешним cron-сервисом)"""
+    """Endpoint для проверки событий и отправки уведомлений (вызывается внешним cron-сервисом)"""
     try:
         logger.info("=" * 50)
         logger.info("Запуск проверки событий через /cron/check-events")
@@ -469,7 +483,13 @@ def cron_run_all():
     try:
         logger.info("Запуск всех задач через /cron/run-all")
         
-        # Проверка событий
+        # Синхронизация событий
+        try:
+            asyncio.run(sync_events_from_calendars())
+        except Exception as e:
+            logger.error(f"Ошибка при синхронизации событий: {e}")
+        
+        # Проверка событий и отправка уведомлений
         try:
             asyncio.run(check_and_notify_events())
         except Exception as e:
@@ -484,7 +504,7 @@ def cron_run_all():
         return {
             "status": "success", 
             "message": "Все задачи выполнены",
-            "tasks": ["check-events", "check-broadcasts"]
+            "tasks": ["sync-events", "check-events", "check-broadcasts"]
         }, 200
     except Exception as e:
         logger.error(f"Ошибка при выполнении задач: {e}")

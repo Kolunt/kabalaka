@@ -101,3 +101,6 @@ def get_language_name(language_code: str) -> str:
 # Загружаем переводы при импорте модуля
 load_translations()
 
+
+
+

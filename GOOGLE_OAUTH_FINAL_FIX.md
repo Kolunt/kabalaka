@@ -112,3 +112,6 @@ GOOGLE_REDIRECT_URI=http://localhost:5000/callback/google
 3. Используйте **НОВЫЕ** credentials
 4. Обновите `.env` файл
 
+
+
+

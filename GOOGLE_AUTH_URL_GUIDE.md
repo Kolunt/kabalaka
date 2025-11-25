@@ -104,3 +104,5 @@ https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=417657561
 3. Статус OAuth Consent Screen (должен быть опубликован или добавлены тестовые пользователи)
 4. Включен ли Google Calendar API в проекте
 
+
+

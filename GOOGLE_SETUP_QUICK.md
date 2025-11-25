@@ -44,3 +44,6 @@ GOOGLE_REDIRECT_URI=http://localhost:5000/callback/google
 
 После настройки попробуйте снова подключить Google Calendar через бота.
 
+
+
+

@@ -64,3 +64,6 @@ GOOGLE_CLIENT_SECRET=новый_client_secret_из_google_console
    - Откройте в браузере (где вы НЕ авторизованы в Google)
    - Посмотрите точную ошибку
 
+
+
+

@@ -82,3 +82,6 @@ python -c "from calendar_google import GoogleCalendar; gc = GoogleCalendar(); pr
 
 Скопируйте полученный URL и откройте его в браузере. Если ошибка появляется сразу - проблема в credentials или настройках Google Cloud Console.
 
+
+
+

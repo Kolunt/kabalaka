@@ -1,7 +1,7 @@
 """Планировщик проверки событий"""
 import logging
 from datetime import datetime, timedelta
-from typing import List, Dict
+from typing import List, Dict, Set
 from database import Database
 from calendar_google import GoogleCalendar
 from calendar_yandex import YandexCalendar
@@ -16,7 +16,7 @@ google_cal = GoogleCalendar()
 yandex_cal = YandexCalendar()
 
 async def check_and_notify_events():
-    """Проверка событий и отправка уведомлений"""
+    """Проверка событий и отправка уведомлений из кэшированной БД"""
     try:
         logger.info("=== Начало проверки событий ===")
         token = Config.get_telegram_token()
@@ -42,51 +42,48 @@ async def check_and_notify_events():
                 notification_minutes = settings.get('notification_minutes', 15)
                 logger.info(f"Интервал уведомлений для пользователя {user_id}: {notification_minutes} минут")
                 
-                # Получаем все календари пользователя
-                calendars = db.get_user_calendars(user_id)
-                logger.info(f"Найдено календарей для пользователя {user_id}: {len(calendars)}")
+                # Получаем события из кэшированной БД
+                now = datetime.utcnow()
+                target_time = now + timedelta(minutes=notification_minutes)
+                logger.info(f"Проверка событий между {now} и {target_time}")
                 
-                for cal_info in calendars:
-                    calendar_type = cal_info['calendar_type']
-                    logger.info(f"Обработка календаря {calendar_type} для пользователя {user_id}")
-                    connection = db.get_calendar_connection(user_id, calendar_type)
+                # Получаем события из БД для этого временного диапазона
+                events = db.get_events_for_notification(user_id, now, target_time)
+                logger.info(f"Найдено {len(events)} событий в БД для пользователя {user_id} в диапазоне уведомлений")
+                
+                events_to_notify = 0
+                for event in events:
+                    event_start = event['start']
+                    calendar_type = event['calendar_type']
+                    event_id = event['event_id']
                     
-                    if not connection:
-                        logger.warning(f"Подключение {calendar_type} не найдено для пользователя {user_id}")
-                        continue
+                    logger.debug(f"Событие: {event.get('summary', 'N/A')} в {event_start}")
                     
-                    # Получаем события
-                    connection['user_id'] = user_id  # Добавляем user_id для использования в функции
-                    events = await get_events_for_calendar(connection, calendar_type)
-                    logger.info(f"Получено событий из {calendar_type} для пользователя {user_id}: {len(events)}")
-                    
-                    # Фильтруем события, которые нужно уведомить
-                    now = datetime.utcnow()
-                    target_time = now + timedelta(minutes=notification_minutes)
-                    logger.info(f"Проверка событий между {now} и {target_time}")
-                    
-                    events_to_notify = 0
-                    for event in events:
-                        event_start = event['start']
-                        logger.debug(f"Событие: {event.get('summary', 'N/A')} в {event_start}")
-                        
-                        # Проверяем, нужно ли отправить уведомление
-                        if now <= event_start <= target_time:
-                            logger.info(f"Событие '{event.get('summary', 'N/A')}' попадает в диапазон уведомлений")
-                            # Проверяем, не отправляли ли уже уведомление
-                            if not db.is_notification_sent(user_id, calendar_type, 
-                                                          event['id'], event_start):
-                                logger.info(f"Отправка уведомления о событии '{event.get('summary', 'N/A')}' пользователю {user_id}")
-                                await send_notification(bot, user_id, event, calendar_type)
-                                db.mark_notification_sent(user_id, calendar_type, 
-                                                         event['id'], event_start)
-                                events_to_notify += 1
-                            else:
-                                logger.info(f"Уведомление о событии '{event.get('summary', 'N/A')}' уже отправлено ранее")
+                    # Проверяем, нужно ли отправить уведомление
+                    if now <= event_start <= target_time:
+                        logger.info(f"Событие '{event.get('summary', 'N/A')}' попадает в диапазон уведомлений")
+                        # Проверяем, не отправляли ли уже уведомление
+                        if not db.is_notification_sent(user_id, calendar_type, event_id, event_start):
+                            logger.info(f"Отправка уведомления о событии '{event.get('summary', 'N/A')}' пользователю {user_id}")
+                            # Преобразуем формат события для совместимости с send_notification
+                            event_dict = {
+                                'id': event_id,
+                                'summary': event.get('summary'),
+                                'description': event.get('description'),
+                                'location': event.get('location'),
+                                'start': event_start,
+                                'end': event.get('end'),
+                                'htmlLink': event.get('html_link')
+                            }
+                            await send_notification(bot, user_id, event_dict, calendar_type)
+                            db.mark_notification_sent(user_id, calendar_type, event_id, event_start)
+                            events_to_notify += 1
                         else:
-                            logger.debug(f"Событие '{event.get('summary', 'N/A')}' не попадает в диапазон (start: {event_start})")
-                    
-                    logger.info(f"Отправлено уведомлений для календаря {calendar_type} пользователя {user_id}: {events_to_notify}")
+                            logger.info(f"Уведомление о событии '{event.get('summary', 'N/A')}' уже отправлено ранее")
+                    else:
+                        logger.debug(f"Событие '{event.get('summary', 'N/A')}' не попадает в диапазон (start: {event_start})")
+                
+                logger.info(f"Отправлено уведомлений для пользователя {user_id}: {events_to_notify}")
             
             except Exception as e:
                 logger.error(f"Ошибка при обработке пользователя {user_id}: {e}", exc_info=True)
@@ -155,11 +152,21 @@ async def get_events_for_calendar(connection: Dict, calendar_type: str) -> List[
                 logger.error("Google Calendar: токен истек и нет refresh_token. Нужно переподключить календарь.")
                 return []
             
-            time_min = datetime.utcnow()
-            time_max = time_min + timedelta(days=1)
+            # Используем переданные time_min и time_max, если они есть
+            if 'time_min' not in connection or connection.get('time_min') is None:
+                time_min = datetime.utcnow() - timedelta(days=30)
+            else:
+                time_min = connection['time_min']
+            
+            if 'time_max' not in connection or connection.get('time_max') is None:
+                time_max = datetime.utcnow() + timedelta(days=90)
+            else:
+                time_max = connection['time_max']
             
             try:
-                events = google_cal.get_upcoming_events(creds, time_min, time_max, max_results=50)
+                # Увеличиваем max_results для синхронизации всех событий
+                max_results = connection.get('max_results', 2500)  # Google Calendar API limit
+                events = google_cal.get_upcoming_events(creds, time_min, time_max, max_results=max_results)
                 logger.info(f"Google Calendar: успешно получено {len(events)} событий")
                 return events
             except HttpError as e:
@@ -214,10 +221,19 @@ async def get_events_for_calendar(connection: Dict, calendar_type: str) -> List[
                 except (ValueError, AttributeError) as e:
                     logger.warning(f"Ошибка при обработке даты истечения токена: {e}")
             
-            time_min = datetime.utcnow()
-            time_max = time_min + timedelta(days=1)
+            # Используем переданные time_min и time_max, если они есть
+            if 'time_min' not in connection or connection.get('time_min') is None:
+                time_min = datetime.utcnow() - timedelta(days=30)
+            else:
+                time_min = connection['time_min']
             
-            return yandex_cal.get_upcoming_events(access_token, time_min, time_max, max_results=50)
+            if 'time_max' not in connection or connection.get('time_max') is None:
+                time_max = datetime.utcnow() + timedelta(days=90)
+            else:
+                time_max = connection['time_max']
+            
+            max_results = connection.get('max_results', 1000)  # Yandex может иметь другие лимиты
+            return yandex_cal.get_upcoming_events(access_token, time_min, time_max, max_results=max_results)
         
         return []
     
@@ -270,4 +286,93 @@ async def send_notification(bot: Bot, user_id: int, event: Dict, calendar_type: 
     
     except Exception as e:
         logger.error(f"Неожиданная ошибка при отправке уведомления пользователю {user_id}: {e}", exc_info=True)
+
+async def sync_events_from_calendars():
+    """Синхронизация событий из календарей в базу данных"""
+    try:
+        logger.info("=== Начало синхронизации событий ===")
+        active_users = db.get_all_active_users()
+        logger.info(f"Найдено активных пользователей: {len(active_users)}")
+        
+        if not active_users:
+            logger.info("Нет активных пользователей с подключенными календарями")
+            return
+        
+        total_synced = 0
+        total_deleted = 0
+        
+        for user_id in active_users:
+            try:
+                logger.info(f"Синхронизация событий для пользователя {user_id}")
+                calendars = db.get_user_calendars(user_id)
+                
+                for cal_info in calendars:
+                    calendar_type = cal_info['calendar_type']
+                    logger.info(f"Синхронизация календаря {calendar_type} для пользователя {user_id}")
+                    
+                    connection = db.get_calendar_connection(user_id, calendar_type)
+                    if not connection:
+                        logger.warning(f"Подключение {calendar_type} не найдено для пользователя {user_id}")
+                        continue
+                    
+                    # Получаем события из календаря (прошедшие и будущие)
+                    # Берем широкий диапазон: от 30 дней назад до 90 дней вперед
+                    time_min = datetime.utcnow() - timedelta(days=30)
+                    time_max = datetime.utcnow() + timedelta(days=90)
+                    
+                    connection['user_id'] = user_id
+                    connection['time_min'] = time_min
+                    connection['time_max'] = time_max
+                    connection['max_results'] = 2500  # Максимум для синхронизации
+                    events = await get_events_for_calendar(connection, calendar_type)
+                    logger.info(f"Получено {len(events)} событий из {calendar_type} для пользователя {user_id}")
+                    
+                    # Получаем текущие event_id из БД для этого календаря
+                    existing_events = db.get_cached_events(user_id, calendar_type, time_min, time_max)
+                    existing_event_ids: Set[tuple] = set()
+                    for event in existing_events:
+                        event_id = event.get('event_id')
+                        start_time = event.get('start_time')
+                        if isinstance(start_time, str):
+                            start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                        elif hasattr(start_time, 'isoformat'):
+                            pass  # Уже datetime
+                        else:
+                            continue
+                        existing_event_ids.add((event_id, start_time))
+                    
+                    # Сохраняем/обновляем события из календаря
+                    current_event_ids: Set[tuple] = set()
+                    for event in events:
+                        event_id = event.get('id')
+                        start_time = event.get('start')
+                        current_event_ids.add((event_id, start_time))
+                        
+                        # Сохраняем или обновляем событие
+                        db.save_or_update_event(
+                            user_id=user_id,
+                            calendar_type=calendar_type,
+                            event_id=event_id,
+                            summary=event.get('summary'),
+                            description=event.get('description'),
+                            location=event.get('location'),
+                            start_time=start_time,
+                            end_time=event.get('end'),
+                            html_link=event.get('htmlLink')
+                        )
+                        total_synced += 1
+                    
+                    # Удаляем старые события (более 7 дней назад)
+                    deleted = db.delete_old_events(user_id, calendar_type, datetime.utcnow() - timedelta(days=7))
+                    total_deleted += deleted
+                    
+                    logger.info(f"Синхронизировано {len(events)} событий для календаря {calendar_type} пользователя {user_id}")
+            
+            except Exception as e:
+                logger.error(f"Ошибка при синхронизации событий для пользователя {user_id}: {e}", exc_info=True)
+        
+        logger.info(f"=== Синхронизация завершена: добавлено/обновлено {total_synced}, удалено {total_deleted} ===")
+    
+    except Exception as e:
+        logger.error(f"Ошибка при синхронизации событий: {e}", exc_info=True)
 

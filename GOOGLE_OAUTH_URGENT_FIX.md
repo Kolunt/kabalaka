@@ -61,3 +61,6 @@ https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=417657561
 4. Создайте новое OAuth 2.0 Client ID
 5. Используйте новые credentials
 
+
+
+

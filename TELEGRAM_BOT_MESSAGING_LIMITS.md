@@ -147,3 +147,4 @@ async def send_notification(bot: Bot, user_id: int, event: Dict, calendar_type: 
 - Не прерывать работу бота при ошибках
 - Логировать проблемы для диагностики
 
+
