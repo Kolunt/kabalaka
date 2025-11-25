@@ -164,7 +164,12 @@ class YandexCalendar:
             
             # URL для CalDAV запроса событий
             # Yandex использует стандартный CalDAV endpoint
-            caldav_url = f"{self.API_BASE_URL}/events/"
+            # Пробуем несколько вариантов endpoints
+            caldav_urls = [
+                f"{self.API_BASE_URL}/events/",
+                f"{self.API_BASE_URL}/calendars/",
+                f"{self.API_BASE_URL}/",
+            ]
             
             # CalDAV REPORT запрос для получения событий в диапазоне дат
             # Используем calendar-query для фильтрации по времени
@@ -191,25 +196,40 @@ class YandexCalendar:
             
             logger.info(f"Yandex CalDAV: запрос событий с {time_min_str} по {time_max_str}")
             
-            # Выполняем REPORT запрос
-            response = requests.request('REPORT', caldav_url, headers=headers, data=caldav_query)
+            # Пробуем разные endpoints
+            events = []
+            for caldav_url in caldav_urls:
+                try:
+                    logger.debug(f"Пробуем endpoint: {caldav_url}")
+                    # Выполняем REPORT запрос
+                    response = requests.request('REPORT', caldav_url, headers=headers, data=caldav_query, timeout=10)
+                    
+                    if response.status_code == 401:
+                        logger.warning(f"Yandex CalDAV: ошибка авторизации (401) для {caldav_url}")
+                        continue
+                    
+                    if response.status_code == 404:
+                        logger.debug(f"Yandex CalDAV: календарь не найден (404) для {caldav_url}")
+                        continue
+                    
+                    if response.status_code == 207:  # 207 Multi-Status - стандартный ответ CalDAV
+                        # Парсим ответ CalDAV (iCalendar формат)
+                        events = self._parse_caldav_response(response.text, time_min, time_max)
+                        if events:
+                            logger.info(f"Yandex CalDAV: успешно получены события через {caldav_url}")
+                            break
+                    
+                    if response.status_code not in [207, 401, 404]:
+                        logger.debug(f"Yandex CalDAV: статус {response.status_code} для {caldav_url}: {response.text[:200]}")
+                        
+                except Exception as e:
+                    logger.debug(f"Ошибка при запросе к {caldav_url}: {e}")
+                    continue
             
-            if response.status_code == 401:
-                logger.error("Yandex CalDAV: ошибка авторизации (401). Возможно, токен истек или неверный.")
-                return []
-            
-            if response.status_code == 404:
-                logger.warning("Yandex CalDAV: календарь не найден (404). Возможно, используется другой endpoint.")
-                # Пробуем альтернативный подход - получить информацию о пользователе и использовать его логин
-                return self._get_events_alternative(access_token, time_min, time_max, max_results)
-            
-            if response.status_code != 207:  # 207 Multi-Status - стандартный ответ CalDAV
-                logger.warning(f"Yandex CalDAV: неожиданный статус {response.status_code}: {response.text[:200]}")
-                # Пробуем альтернативный подход
-                return self._get_events_alternative(access_token, time_min, time_max, max_results)
-            
-            # Парсим ответ CalDAV (iCalendar формат)
-            events = self._parse_caldav_response(response.text, time_min, time_max)
+            # Если не получили события через CalDAV, пробуем альтернативный метод
+            if not events:
+                logger.warning("Yandex CalDAV: не удалось получить события через стандартный CalDAV. Пробуем альтернативный метод.")
+                events = self._get_events_alternative(access_token, time_min, time_max, max_results)
             
             logger.info(f"Yandex CalDAV: получено {len(events)} событий")
             return events[:max_results]
