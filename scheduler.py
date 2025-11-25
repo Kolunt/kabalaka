@@ -18,56 +18,83 @@ yandex_cal = YandexCalendar()
 async def check_and_notify_events():
     """Проверка событий и отправка уведомлений"""
     try:
+        logger.info("=== Начало проверки событий ===")
         token = Config.get_telegram_token()
         if not token:
             logger.warning("TELEGRAM_BOT_TOKEN не установлен. Пропуск проверки событий.")
             return
         bot = Bot(token=token)
         active_users = db.get_all_active_users()
+        logger.info(f"Найдено активных пользователей: {len(active_users)}")
+        
+        if not active_users:
+            logger.info("Нет активных пользователей с подключенными календарями")
+            return
         
         for user_id in active_users:
             try:
+                logger.info(f"Обработка пользователя {user_id}")
                 settings = db.get_notification_settings(user_id)
                 if not settings.get('enabled', True):
+                    logger.info(f"Уведомления отключены для пользователя {user_id}")
                     continue
                 
                 notification_minutes = settings.get('notification_minutes', 15)
+                logger.info(f"Интервал уведомлений для пользователя {user_id}: {notification_minutes} минут")
                 
                 # Получаем все календари пользователя
                 calendars = db.get_user_calendars(user_id)
+                logger.info(f"Найдено календарей для пользователя {user_id}: {len(calendars)}")
                 
                 for cal_info in calendars:
                     calendar_type = cal_info['calendar_type']
+                    logger.info(f"Обработка календаря {calendar_type} для пользователя {user_id}")
                     connection = db.get_calendar_connection(user_id, calendar_type)
                     
                     if not connection:
+                        logger.warning(f"Подключение {calendar_type} не найдено для пользователя {user_id}")
                         continue
                     
                     # Получаем события
                     connection['user_id'] = user_id  # Добавляем user_id для использования в функции
                     events = await get_events_for_calendar(connection, calendar_type)
+                    logger.info(f"Получено событий из {calendar_type} для пользователя {user_id}: {len(events)}")
                     
                     # Фильтруем события, которые нужно уведомить
                     now = datetime.utcnow()
                     target_time = now + timedelta(minutes=notification_minutes)
+                    logger.info(f"Проверка событий между {now} и {target_time}")
                     
+                    events_to_notify = 0
                     for event in events:
                         event_start = event['start']
+                        logger.debug(f"Событие: {event.get('summary', 'N/A')} в {event_start}")
                         
                         # Проверяем, нужно ли отправить уведомление
                         if now <= event_start <= target_time:
+                            logger.info(f"Событие '{event.get('summary', 'N/A')}' попадает в диапазон уведомлений")
                             # Проверяем, не отправляли ли уже уведомление
                             if not db.is_notification_sent(user_id, calendar_type, 
                                                           event['id'], event_start):
+                                logger.info(f"Отправка уведомления о событии '{event.get('summary', 'N/A')}' пользователю {user_id}")
                                 await send_notification(bot, user_id, event, calendar_type)
                                 db.mark_notification_sent(user_id, calendar_type, 
                                                          event['id'], event_start)
+                                events_to_notify += 1
+                            else:
+                                logger.info(f"Уведомление о событии '{event.get('summary', 'N/A')}' уже отправлено ранее")
+                        else:
+                            logger.debug(f"Событие '{event.get('summary', 'N/A')}' не попадает в диапазон (start: {event_start})")
+                    
+                    logger.info(f"Отправлено уведомлений для календаря {calendar_type} пользователя {user_id}: {events_to_notify}")
             
             except Exception as e:
-                logger.error(f"Ошибка при обработке пользователя {user_id}: {e}")
+                logger.error(f"Ошибка при обработке пользователя {user_id}: {e}", exc_info=True)
+        
+        logger.info("=== Завершение проверки событий ===")
     
     except Exception as e:
-        logger.error(f"Ошибка при проверке событий: {e}")
+        logger.error(f"Ошибка при проверке событий: {e}", exc_info=True)
 
 async def get_events_for_calendar(connection: Dict, calendar_type: str) -> List[Dict]:
     """Получение событий для календаря"""

@@ -402,11 +402,28 @@ def cron_wake():
 def cron_check_events():
     """Endpoint для проверки событий (вызывается внешним cron-сервисом)"""
     try:
+        logger.info("=" * 50)
         logger.info("Запуск проверки событий через /cron/check-events")
+        logger.info("=" * 50)
         asyncio.run(check_and_notify_events())
+        logger.info("Проверка событий завершена успешно")
         return {"status": "success", "message": "Проверка событий выполнена"}, 200
     except Exception as e:
-        logger.error(f"Ошибка при проверке событий: {e}")
+        logger.error(f"Ошибка при проверке событий: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route('/test/check-events')
+def test_check_events():
+    """Тестовый endpoint для проверки событий (для отладки)"""
+    try:
+        logger.info("=" * 50)
+        logger.info("ТЕСТОВЫЙ запуск проверки событий")
+        logger.info("=" * 50)
+        asyncio.run(check_and_notify_events())
+        logger.info("Тестовая проверка событий завершена")
+        return {"status": "success", "message": "Тестовая проверка событий выполнена. Проверьте логи."}, 200
+    except Exception as e:
+        logger.error(f"Ошибка при тестовой проверке событий: {e}", exc_info=True)
         return {"status": "error", "message": str(e)}, 500
 
 @app.route('/cron/check-broadcasts')
