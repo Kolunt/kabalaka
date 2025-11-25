@@ -145,24 +145,222 @@ class YandexCalendar:
                            time_min: datetime = None,
                            time_max: datetime = None,
                            max_results: int = 10) -> List[Dict]:
-        """Получение предстоящих событий"""
-        # Yandex Calendar использует CalDAV, что требует более сложной реализации
-        # Для демонстрации используем упрощенный подход
-        
-        # В реальном проекте здесь должна быть реализация CalDAV запросов
-        # или использование Yandex Calendar API, если он доступен
+        """Получение предстоящих событий через CalDAV"""
+        import logging
+        logger = logging.getLogger(__name__)
         
         try:
-            # Пример запроса через CalDAV (упрощенная версия)
-            # В реальности нужна полная реализация CalDAV клиента
+            # Yandex Calendar использует CalDAV протокол
+            # Для работы с OAuth токеном используем ручную реализацию через requests
             
-            # Для демонстрации возвращаем пустой список
-            # В продакшене здесь должна быть полная реализация CalDAV
+            if time_min is None:
+                time_min = datetime.utcnow()
+            if time_max is None:
+                time_max = time_min + timedelta(days=1)
             
-            return []
+            # Форматируем даты для CalDAV запроса (RFC 3339)
+            time_min_str = time_min.strftime('%Y%m%dT%H%M%SZ')
+            time_max_str = time_max.strftime('%Y%m%dT%H%M%SZ')
+            
+            # URL для CalDAV запроса событий
+            # Yandex использует стандартный CalDAV endpoint
+            caldav_url = f"{self.API_BASE_URL}/events/"
+            
+            # CalDAV REPORT запрос для получения событий в диапазоне дат
+            # Используем calendar-query для фильтрации по времени
+            caldav_query = f"""<?xml version="1.0" encoding="utf-8" ?>
+<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+    <D:prop>
+        <D:getetag/>
+        <C:calendar-data/>
+    </D:prop>
+    <C:filter>
+        <C:comp-filter name="VCALENDAR">
+            <C:comp-filter name="VEVENT">
+                <C:time-range start="{time_min_str}" end="{time_max_str}"/>
+            </C:comp-filter>
+        </C:comp-filter>
+    </C:filter>
+</C:calendar-query>"""
+            
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/xml; charset=utf-8',
+                'Depth': '1'
+            }
+            
+            logger.info(f"Yandex CalDAV: запрос событий с {time_min_str} по {time_max_str}")
+            
+            # Выполняем REPORT запрос
+            response = requests.request('REPORT', caldav_url, headers=headers, data=caldav_query)
+            
+            if response.status_code == 401:
+                logger.error("Yandex CalDAV: ошибка авторизации (401). Возможно, токен истек или неверный.")
+                return []
+            
+            if response.status_code == 404:
+                logger.warning("Yandex CalDAV: календарь не найден (404). Возможно, используется другой endpoint.")
+                # Пробуем альтернативный подход - получить информацию о пользователе и использовать его логин
+                return self._get_events_alternative(access_token, time_min, time_max, max_results)
+            
+            if response.status_code != 207:  # 207 Multi-Status - стандартный ответ CalDAV
+                logger.warning(f"Yandex CalDAV: неожиданный статус {response.status_code}: {response.text[:200]}")
+                # Пробуем альтернативный подход
+                return self._get_events_alternative(access_token, time_min, time_max, max_results)
+            
+            # Парсим ответ CalDAV (iCalendar формат)
+            events = self._parse_caldav_response(response.text, time_min, time_max)
+            
+            logger.info(f"Yandex CalDAV: получено {len(events)} событий")
+            return events[:max_results]
             
         except Exception as e:
-            print(f"Ошибка при получении событий: {e}")
+            logger.error(f"Ошибка при получении событий Yandex Calendar: {e}", exc_info=True)
+            # Пробуем альтернативный подход при ошибке
+            try:
+                return self._get_events_alternative(access_token, time_min, time_max, max_results)
+            except Exception as e2:
+                logger.error(f"Альтернативный метод также не сработал: {e2}")
+                return []
+    
+    def _get_events_alternative(self, access_token: str, time_min: datetime, time_max: datetime, max_results: int) -> List[Dict]:
+        """Альтернативный метод получения событий через библиотеку caldav"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Пробуем использовать библиотеку caldav
+            import caldav
+            
+            # Для Yandex с OAuth нужно использовать специальный подход
+            # Yandex CalDAV может требовать логин пользователя вместо токена
+            # Пока возвращаем пустой список, так как нужна информация о пользователе
+            
+            logger.warning("Yandex CalDAV: альтернативный метод не реализован. Требуется информация о пользователе.")
+            return []
+            
+        except ImportError:
+            logger.warning("Библиотека caldav не установлена. Установите: pip install caldav")
+            return []
+        except Exception as e:
+            logger.error(f"Ошибка в альтернативном методе: {e}")
+            return []
+    
+    def _parse_caldav_response(self, ical_data: str, time_min: datetime, time_max: datetime) -> List[Dict]:
+        """Парсинг iCalendar данных из CalDAV ответа"""
+        import logging
+        import re
+        from dateutil import parser as date_parser
+        
+        logger = logging.getLogger(__name__)
+        events = []
+        
+        try:
+            # Разделяем ответ на отдельные события (каждое событие в своем блоке)
+            # CalDAV возвращает несколько VCALENDAR блоков, каждый содержит VEVENT
+            
+            # Ищем все блоки VEVENT
+            vevent_pattern = r'BEGIN:VEVENT(.*?)END:VEVENT'
+            vevents = re.findall(vevent_pattern, ical_data, re.DOTALL)
+            
+            logger.debug(f"Найдено VEVENT блоков: {len(vevents)}")
+            
+            for vevent_text in vevents:
+                try:
+                    event_data = {}
+                    
+                    # Извлекаем основные поля
+                    # UID
+                    uid_match = re.search(r'UID:(.*?)(?:\r\n|\n)', vevent_text)
+                    if uid_match:
+                        event_data['id'] = uid_match.group(1).strip()
+                    else:
+                        continue  # Пропускаем события без UID
+                    
+                    # SUMMARY (название)
+                    summary_match = re.search(r'SUMMARY(?:;.*?)?:(.*?)(?:\r\n|\n)', vevent_text)
+                    if summary_match:
+                        event_data['summary'] = summary_match.group(1).strip()
+                    else:
+                        event_data['summary'] = 'Без названия'
+                    
+                    # DESCRIPTION
+                    desc_match = re.search(r'DESCRIPTION(?:;.*?)?:(.*?)(?:\r\n|\n)', vevent_text, re.DOTALL)
+                    if desc_match:
+                        # Убираем переносы строк и экранирование
+                        description = desc_match.group(1).strip()
+                        description = description.replace('\\n', '\n').replace('\\,', ',')
+                        event_data['description'] = description
+                    else:
+                        event_data['description'] = ''
+                    
+                    # LOCATION
+                    location_match = re.search(r'LOCATION(?:;.*?)?:(.*?)(?:\r\n|\n)', vevent_text)
+                    if location_match:
+                        location = location_match.group(1).strip()
+                        location = location.replace('\\,', ',')
+                        event_data['location'] = location
+                    else:
+                        event_data['location'] = ''
+                    
+                    # DTSTART (время начала)
+                    dtstart_match = re.search(r'DTSTART(?:;.*?)?:(.*?)(?:\r\n|\n)', vevent_text)
+                    if dtstart_match:
+                        dtstart_str = dtstart_match.group(1).strip()
+                        try:
+                            # Парсим формат iCalendar (YYYYMMDDTHHMMSS или YYYYMMDD)
+                            if 'T' in dtstart_str:
+                                if len(dtstart_str) == 15:  # YYYYMMDDTHHMMSS
+                                    start_dt = datetime.strptime(dtstart_str, '%Y%m%dT%H%M%S')
+                                elif len(dtstart_str) == 16 and dtstart_str.endswith('Z'):  # YYYYMMDDTHHMMSSZ
+                                    start_dt = datetime.strptime(dtstart_str, '%Y%m%dT%H%M%SZ')
+                                else:
+                                    start_dt = date_parser.parse(dtstart_str)
+                            else:
+                                # Только дата
+                                start_dt = datetime.strptime(dtstart_str, '%Y%m%d')
+                            event_data['start'] = start_dt
+                        except Exception as e:
+                            logger.warning(f"Ошибка парсинга DTSTART '{dtstart_str}': {e}")
+                            continue
+                    else:
+                        continue  # Пропускаем события без времени начала
+                    
+                    # DTEND (время окончания)
+                    dtend_match = re.search(r'DTEND(?:;.*?)?:(.*?)(?:\r\n|\n)', vevent_text)
+                    if dtend_match:
+                        dtend_str = dtend_match.group(1).strip()
+                        try:
+                            if 'T' in dtend_str:
+                                if len(dtend_str) == 15:
+                                    end_dt = datetime.strptime(dtend_str, '%Y%m%dT%H%M%S')
+                                elif len(dtend_str) == 16 and dtend_str.endswith('Z'):
+                                    end_dt = datetime.strptime(dtend_str, '%Y%m%dT%H%M%SZ')
+                                else:
+                                    end_dt = date_parser.parse(dtend_str)
+                            else:
+                                end_dt = datetime.strptime(dtend_str, '%Y%m%d')
+                            event_data['end'] = end_dt
+                        except Exception as e:
+                            logger.warning(f"Ошибка парсинга DTEND '{dtend_str}': {e}")
+                            # Если не удалось распарсить, используем start + 1 час
+                            event_data['end'] = event_data['start'] + timedelta(hours=1)
+                    else:
+                        # Если нет DTEND, используем start + 1 час
+                        event_data['end'] = event_data['start'] + timedelta(hours=1)
+                    
+                    # Фильтруем события по времени (на всякий случай, хотя фильтр уже в запросе)
+                    if time_min <= event_data['start'] <= time_max:
+                        events.append(event_data)
+                    
+                except Exception as e:
+                    logger.warning(f"Ошибка при парсинге события: {e}")
+                    continue
+            
+            return events
+            
+        except Exception as e:
+            logger.error(f"Ошибка при парсинге CalDAV ответа: {e}", exc_info=True)
             return []
     
     def get_calendar_info(self, access_token: str) -> Dict:
