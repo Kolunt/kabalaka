@@ -511,6 +511,14 @@ SETTINGS_GENERAL_TEMPLATE = SETTINGS_BASE_TEMPLATE.replace('{% block settings_co
                 Должен совпадать с настройками в Google Cloud Console
             </small>
         </div>
+        <div class="form-group">
+            <button type="button" class="btn" style="background: #3498db; color: white; margin-top: 10px;" onclick="generateGoogleAuthUrl()">
+                🔗 Сгенерировать ссылку авторизации Google
+            </button>
+            <small style="color: #7f8c8d; display: block; margin-top: 5px;">
+                Создаст прямую ссылку для авторизации Google Calendar
+            </small>
+        </div>
         
         <h3 style="margin-top: 30px; margin-bottom: 15px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">Yandex Calendar</h3>
         <div class="form-group">
@@ -537,10 +545,132 @@ SETTINGS_GENERAL_TEMPLATE = SETTINGS_BASE_TEMPLATE.replace('{% block settings_co
                 Должен совпадать с настройками в Yandex OAuth
             </small>
         </div>
+        <div class="form-group">
+            <button type="button" class="btn" style="background: #f39c12; color: white; margin-top: 10px;" onclick="generateYandexAuthUrl()">
+                🔗 Сгенерировать ссылку авторизации Yandex
+            </button>
+            <small style="color: #7f8c8d; display: block; margin-top: 5px;">
+                Создаст прямую ссылку для авторизации Yandex Calendar
+            </small>
+        </div>
         
         <button type="submit" class="btn btn-primary">Сохранить настройки</button>
     </form>
 </div>
+
+<!-- Модальное окно для отображения URL -->
+<div id="authUrlModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #2c3e50;" id="modalTitle">Ссылка авторизации</h3>
+            <span style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;" onclick="closeAuthUrlModal()">&times;</span>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; color: #555; font-weight: bold;">Ссылка для авторизации:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="authUrlInput" readonly 
+                       style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; font-family: monospace; background: #f8f9fa;">
+                <button type="button" class="btn" style="background: #27ae60; color: white;" onclick="copyAuthUrl()">
+                    📋 Копировать
+                </button>
+            </div>
+        </div>
+        <div style="background: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
+            <p style="margin: 0; color: #856404; font-size: 13px;">
+                <strong>Инструкция:</strong><br>
+                1. Скопируйте ссылку выше<br>
+                2. Откройте её в браузере (желательно в режиме инкогнито)<br>
+                3. Выберите аккаунт для авторизации<br>
+                4. Разрешите доступ к календарю
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn" style="background: #95a5a6; color: white;" onclick="closeAuthUrlModal()">
+                Закрыть
+            </button>
+            <a id="openAuthUrlLink" href="#" target="_blank" class="btn" style="background: #3498db; color: white; text-decoration: none;">
+                🔗 Открыть ссылку
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateGoogleAuthUrl() {
+    const userId = prompt('Введите ID пользователя Telegram (или оставьте пустым для тестирования):');
+    const userIdParam = userId && userId.trim() ? userId.trim() : null;
+    
+    fetch('{{ url_for("admin.generate_google_auth_url") }}' + (userIdParam ? '?user_id=' + encodeURIComponent(userIdParam) : ''))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAuthUrlModal('Google Calendar', data.url);
+            } else {
+                alert('Ошибка: ' + (data.error || 'Не удалось сгенерировать ссылку'));
+            }
+        })
+        .catch(error => {
+            alert('Ошибка при генерации ссылки: ' + error);
+        });
+}
+
+function generateYandexAuthUrl() {
+    const userId = prompt('Введите ID пользователя Telegram (или оставьте пустым для тестирования):');
+    const userIdParam = userId && userId.trim() ? userId.trim() : null;
+    
+    fetch('{{ url_for("admin.generate_yandex_auth_url") }}' + (userIdParam ? '?user_id=' + encodeURIComponent(userIdParam) : ''))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAuthUrlModal('Yandex Calendar', data.url);
+            } else {
+                alert('Ошибка: ' + (data.error || 'Не удалось сгенерировать ссылку'));
+            }
+        })
+        .catch(error => {
+            alert('Ошибка при генерации ссылки: ' + error);
+        });
+}
+
+function showAuthUrlModal(title, url) {
+    document.getElementById('modalTitle').textContent = 'Ссылка авторизации ' + title;
+    document.getElementById('authUrlInput').value = url;
+    document.getElementById('openAuthUrlLink').href = url;
+    document.getElementById('authUrlModal').style.display = 'block';
+}
+
+function closeAuthUrlModal() {
+    document.getElementById('authUrlModal').style.display = 'none';
+}
+
+function copyAuthUrl() {
+    const input = document.getElementById('authUrlInput');
+    input.select();
+    input.setSelectionRange(0, 99999); // Для мобильных устройств
+    
+    try {
+        document.execCommand('copy');
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Скопировано!';
+        btn.style.background = '#27ae60';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '#27ae60';
+        }, 2000);
+    } catch (err) {
+        alert('Не удалось скопировать. Скопируйте вручную.');
+    }
+}
+
+// Закрытие модального окна при клике вне его
+window.onclick = function(event) {
+    const modal = document.getElementById('authUrlModal');
+    if (event.target == modal) {
+        closeAuthUrlModal();
+    }
+}
+</script>
 {% endblock %}
 ''')
 
@@ -1144,6 +1274,104 @@ def restart_bot_endpoint():
     except Exception as e:
         logger = logging.getLogger(__name__)
         logger.error(f"Ошибка при перезапуске бота: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@admin_bp.route('/api/generate-google-auth-url')
+@login_required
+def generate_google_auth_url():
+    """API для генерации URL авторизации Google"""
+    try:
+        from calendar_google import GoogleCalendar
+        
+        user_id = request.args.get('user_id')
+        user_id_int = None
+        if user_id:
+            try:
+                user_id_int = int(user_id)
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': 'Неверный формат user_id'
+                })
+        
+        google_cal = GoogleCalendar()
+        
+        # Проверяем, что credentials установлены
+        if not google_cal.client_id:
+            return jsonify({
+                'success': False,
+                'error': 'Google Client ID не установлен. Заполните его в настройках выше.'
+            })
+        
+        if not google_cal.redirect_uri:
+            return jsonify({
+                'success': False,
+                'error': 'Google Redirect URI не установлен. Заполните его в настройках выше.'
+            })
+        
+        # Генерируем URL
+        auth_url = google_cal.get_authorization_url(user_id=user_id_int)
+        
+        return jsonify({
+            'success': True,
+            'url': auth_url
+        })
+        
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Ошибка при генерации Google auth URL: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@admin_bp.route('/api/generate-yandex-auth-url')
+@login_required
+def generate_yandex_auth_url():
+    """API для генерации URL авторизации Yandex"""
+    try:
+        from calendar_yandex import YandexCalendar
+        
+        user_id = request.args.get('user_id')
+        user_id_int = None
+        if user_id:
+            try:
+                user_id_int = int(user_id)
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': 'Неверный формат user_id'
+                })
+        
+        yandex_cal = YandexCalendar()
+        
+        # Проверяем, что credentials установлены
+        if not yandex_cal.client_id:
+            return jsonify({
+                'success': False,
+                'error': 'Yandex Client ID не установлен. Заполните его в настройках выше.'
+            })
+        
+        if not yandex_cal.redirect_uri:
+            return jsonify({
+                'success': False,
+                'error': 'Yandex Redirect URI не установлен. Заполните его в настройках выше.'
+            })
+        
+        # Генерируем URL
+        auth_url = yandex_cal.get_authorization_url(user_id=user_id_int)
+        
+        return jsonify({
+            'success': True,
+            'url': auth_url
+        })
+        
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Ошибка при генерации Yandex auth URL: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
